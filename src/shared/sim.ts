@@ -36,12 +36,43 @@ export function setTile(world: WorldState, x: number, y: number, v: number): voi
 
 /** Builds the starting world: border walls plus the classic odd/odd pillars. */
 export function createWorld(): WorldState {
+
+  function mulberry32(seed:number) {
+    return function() {
+      let t = seed += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+  }
+
+  const blockGenerator: {seed:number, blockLimit:number, blockCount:number, printBlock: () => boolean} = {
+    seed: Math.ceil(Math.random() * 1000),
+    blockLimit: 50,
+    blockCount: 0,
+    printBlock: function() {
+      let t = this.seed += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      const nextSeqNumber =  ((t ^ (t >>> 14)) >>> 0) / 4294967296
+      const printBlock = nextSeqNumber <= 0.5 && (this.blockCount + 1 <= this.blockLimit)
+      if(printBlock){
+        this.blockCount += 1
+      }
+      return printBlock
+    }
+  }
+
   const tiles = new Uint8Array(GRID_W * GRID_H)
   for (let y = 0; y < GRID_H; y++) {
     for (let x = 0; x < GRID_W; x++) {
       const border = x === 0 || y === 0 || x === GRID_W - 1 || y === GRID_H - 1
       const pillar = x % 2 === 0 && y % 2 === 0
-      tiles[y * GRID_W + x] = border || pillar ? Tile.Wall : Tile.Floor
+      const spawnZone = (x === 1 && y === 1) || (x === 1 && y === 2) || (x === 2 && y === 1)
+
+      tiles[y * GRID_W + x] = border || pillar ?
+          Tile.Wall : blockGenerator.printBlock() && !spawnZone ?
+              Tile.Block : Tile.Floor
     }
   }
 
