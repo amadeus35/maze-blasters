@@ -1,0 +1,23 @@
+{
+  "name": "maze-blasters",
+  "version": "0.1.0",
+  "description": "A multiplayer Bomberman clone built to learn netcode from scratch: fixed-timestep simulation, client-side prediction, reconciliation, and interpolation.",
+  "license": "MIT",
+  "author": "Amadeus Salazar",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "tsc",
+    "start": "node dist/server/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/ws": "^8.5.13",
+    "typescript": "^5.7.0"
+  }
+}
