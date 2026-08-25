@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { PORT } from '../shared/constants.js'
 import type { ClientMessage, ServerMessage } from '../shared/types.js'
+import {createWorld} from "../shared/sim.js";
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..')
 
@@ -35,7 +36,7 @@ const MIME: Record<string, string> = {
 const http = createServer(async (req, res) => {
   const urlPath = (req.url ?? '/').split('?')[0] ?? '/'
   const rel = urlPath === '/' ? 'public/index.html'
-    : urlPath.startsWith('/dist/') || urlPath.startsWith('/src/') ? urlPath.slice(1)
+    : urlPath.startsWith('/dist/') || urlPath.startsWith('/src/') || urlPath.startsWith('/node_modules/') ? urlPath.slice(1)
     : join('public', urlPath)
 
   const file = normalize(join(ROOT, rel))
@@ -55,6 +56,12 @@ const wss = new WebSocketServer({ server: http })
 
 let nextId = 1
 const clients = new Map<string, WebSocket>()
+const worldConfig = {
+  seed:Math.ceil(Math.random() * 1000),
+  blockLimit:50
+}
+
+// const world = createWorld(worldConfig)
 
 function send(ws: WebSocket, msg: ServerMessage): void {
   ws.send(JSON.stringify(msg))
@@ -65,7 +72,7 @@ wss.on('connection', (ws) => {
   clients.set(id, ws)
   console.log(`[ws] ${id} connected (${clients.size} online)`)
 
-  send(ws, { t: 'welcome', id, tick: 0 })
+  send(ws, { t: 'welcome', id, tick: 0, worldConfig })
 
   ws.on('message', (raw) => {
     let msg: ClientMessage

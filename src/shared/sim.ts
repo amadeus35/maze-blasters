@@ -20,7 +20,7 @@
 // ============================================================================
 
 import { GRID_W, GRID_H } from './constants.js'
-import { Tile, type PlayerId, type PlayerState, type WorldState, type InputCommand } from './types.js'
+import {Tile, type PlayerId, type PlayerState, type WorldState, type InputCommand, type WorldConfig} from './types.js'
 
 /** Read a tile safely. Out of bounds counts as solid Wall — no bounds checks
  *  scattered through your movement code, and no undefined leaking in. */
@@ -35,32 +35,19 @@ export function setTile(world: WorldState, x: number, y: number, v: number): voi
 }
 
 /** Builds the starting world: border walls plus the classic odd/odd pillars. */
-export function createWorld(): WorldState {
+export function createWorld(config: WorldConfig): WorldState {
 
-  function mulberry32(seed:number) {
-    return function() {
-      let t = seed += 0x6D2B79F5;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  let blockCount = 0
+  const printBlock =() => {
+    let t = config.seed += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    const nextSeqNumber =  ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    const printBlock = nextSeqNumber <= 0.5 && (blockCount + 1 <= config.blockLimit)
+    if(printBlock){
+      blockCount += 1
     }
-  }
-
-  const blockGenerator: {seed:number, blockLimit:number, blockCount:number, printBlock: () => boolean} = {
-    seed: Math.ceil(Math.random() * 1000),
-    blockLimit: 50,
-    blockCount: 0,
-    printBlock: function() {
-      let t = this.seed += 0x6D2B79F5;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      const nextSeqNumber =  ((t ^ (t >>> 14)) >>> 0) / 4294967296
-      const printBlock = nextSeqNumber <= 0.5 && (this.blockCount + 1 <= this.blockLimit)
-      if(printBlock){
-        this.blockCount += 1
-      }
-      return printBlock
-    }
+    return printBlock
   }
 
   const tiles = new Uint8Array(GRID_W * GRID_H)
@@ -71,7 +58,7 @@ export function createWorld(): WorldState {
       const spawnZone = (x === 1 && y === 1) || (x === 1 && y === 2) || (x === 2 && y === 1)
 
       tiles[y * GRID_W + x] = border || pillar ?
-          Tile.Wall : blockGenerator.printBlock() && !spawnZone ?
+          Tile.Wall : printBlock() && !spawnZone ?
               Tile.Block : Tile.Floor
     }
   }

@@ -40,6 +40,11 @@ export interface PlayerState {
   alive: boolean
 }
 
+export interface WorldConfig {
+  seed: number
+  blockLimit: number
+}
+
 /**
  * The complete state of the world at one instant.
  *
@@ -72,5 +77,5 @@ export type ClientMessage =
 
 /** Server -> Client */
 export type ServerMessage =
-  | { t: 'welcome'; id: PlayerId; tick: Tick }
+  | { t: 'welcome'; id: PlayerId; tick: Tick, worldConfig: WorldConfig }
   | { t: 'state'; tick: Tick; players: PlayerState[] }
