@@ -15,10 +15,10 @@
 
 import { TICK_MS } from '../shared/constants.js'
 import { createWorld, addPlayer, step } from '../shared/sim.js'
-import type {InputCommand, PlayerId, WorldState} from '../shared/types.js'
+import type {InputCommand, PlayerId, WorldConfig, WorldState} from '../shared/types.js'
 import { attachInput, sampleInput } from './input.js'
 import { setupCanvas, render } from './render.js'
-import {serverMessageSchema} from "../shared/schemas.js";
+import {connect} from "./net.js";
 
 const canvas = document.getElementById('game') as HTMLCanvasElement
 const ctx = setupCanvas(canvas)
@@ -57,47 +57,19 @@ function frame(now: number): void {
   }
 }
 
-function handleMessage(event: MessageEvent){
-  let rawMessage
-  try{
-    rawMessage = JSON.parse(event.data)
-  }catch (e) {
-    console.error(e)
-    return
-  }
-  const result = serverMessageSchema.safeParse(rawMessage)
-  if(!result.success){
-    console.error(result.error)
-    return
-  }
-  const message = result.data
-  switch (message.t){
-    case "welcome":
-      if(world === null){
-        // --- The fixed-timestep loop ------------------------------------------------
-        // Real time arrives in irregular lumps (whatever gap requestAnimationFrame
-        // hands us). The accumulator converts those lumps into a whole number of
-        // equal-sized ticks and carries the remainder forward to the next frame.
-        // Nothing is ever lost and nothing is ever double-counted.
+function onWelcome(config: WorldConfig){
+  previous = performance.now()
+  world = createWorld(config)
+  addPlayer(world, LOCAL_ID, 1, 1)
 
-        previous = performance.now()
-
-
-        world = createWorld(message.worldConfig)
-        addPlayer(world, LOCAL_ID, 1, 1)
-
-        requestAnimationFrame(frame)
-      }
-      break
-    default: // State message
-      console.log("Updating state...")
-  }
+  requestAnimationFrame(frame)
+}
+function onStateUpdate(){
+  console.log("Updating state...")
 }
 
-// --- The socket -------------------------------------------------------------
-// Connected now purely so you can see the plumbing works (watch the server
-// console). It carries no gameplay until Phase 1.
-const ws = new WebSocket(`ws://${location.host}`)
-ws.addEventListener('open', () => console.log('[net] connected'))
-ws.addEventListener('message', (e) => handleMessage(e))
-ws.addEventListener('close', () => console.log('[net] disconnected'))
+connect({
+  onWelcome,
+  onStateUpdate
+})
+
