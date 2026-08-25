@@ -27,20 +27,45 @@ const hud = document.getElementById('hud') as HTMLElement
 attachInput()
 
 const LOCAL_ID: PlayerId = 'local'
-let worldIsSet = false
+let world: WorldState|null = null
 const inputs = new Map<PlayerId, InputCommand>()
-
-// --- The fixed-timestep loop ------------------------------------------------
-// Real time arrives in irregular lumps (whatever gap requestAnimationFrame
-// hands us). The accumulator converts those lumps into a whole number of
-// equal-sized ticks and carries the remainder forward to the next frame.
-// Nothing is ever lost and nothing is ever double-counted.
-
-let previous = performance.now()
 let accumulator = 0
+let previous = 0
+function frame(now: number): void {
+  if(world){
+    requestAnimationFrame(frame)
+
+    let elapsed = now - previous
+    previous = now
+
+    // Clamp. If the tab was backgrounded for 30 seconds, `elapsed` is 30000ms
+    // and the loop below would try to run 1800 ticks in one frame, freeze, and
+    // make `elapsed` even larger next frame. This is the classic "spiral of
+    // death". Better to drop simulated time than to hang.
+    if (elapsed > 250) elapsed = 250
+
+    accumulator += elapsed
+
+    while (accumulator >= TICK_MS) {
+      inputs.set(LOCAL_ID, sampleInput())
+      step(world, inputs)
+      accumulator -= TICK_MS
+    }
+
+    render(ctx, world, accumulator / TICK_MS)
+    hud.textContent = `tick ${world.tick}`
+  }
+}
 
 function handleMessage(event: MessageEvent){
-  const result = serverMessageSchema.safeParse(JSON.parse(event.data))
+  let rawMessage
+  try{
+    rawMessage = JSON.parse(event.data)
+  }catch (e) {
+    console.error(e)
+    return
+  }
+  const result = serverMessageSchema.safeParse(rawMessage)
   if(!result.success){
     console.error(result.error)
     return
@@ -48,44 +73,24 @@ function handleMessage(event: MessageEvent){
   const message = result.data
   switch (message.t){
     case "welcome":
-      if(!worldIsSet){
-        const world = createWorld(message.worldConfig)
-        console.log("world created")
-        worldIsSet = true
+      if(world === null){
+        // --- The fixed-timestep loop ------------------------------------------------
+        // Real time arrives in irregular lumps (whatever gap requestAnimationFrame
+        // hands us). The accumulator converts those lumps into a whole number of
+        // equal-sized ticks and carries the remainder forward to the next frame.
+        // Nothing is ever lost and nothing is ever double-counted.
+
+        previous = performance.now()
+
+
+        world = createWorld(message.worldConfig)
         addPlayer(world, LOCAL_ID, 1, 1)
-        function frame(now: number): void {
-          requestAnimationFrame(frame)
-
-          let elapsed = now - previous
-          previous = now
-
-          // Clamp. If the tab was backgrounded for 30 seconds, `elapsed` is 30000ms
-          // and the loop below would try to run 1800 ticks in one frame, freeze, and
-          // make `elapsed` even larger next frame. This is the classic "spiral of
-          // death". Better to drop simulated time than to hang.
-          if (elapsed > 250) elapsed = 250
-
-          accumulator += elapsed
-
-          while (accumulator >= TICK_MS) {
-            inputs.set(LOCAL_ID, sampleInput())
-            step(world, inputs)
-            accumulator -= TICK_MS
-          }
-
-          render(ctx, world, accumulator / TICK_MS)
-          hud.textContent = `tick ${world.tick}`
-        }
 
         requestAnimationFrame(frame)
       }
       break
-    case "state":
+    default: // State message
       console.log("Updating state...")
-      break
-    default:
-      console.warn("Invalid message")
-      console.log('[net]', JSON.parse(event.data as string))
   }
 }
 

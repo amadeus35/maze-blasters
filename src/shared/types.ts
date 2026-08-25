@@ -41,8 +41,8 @@ export interface PlayerState {
 }
 
 export interface WorldConfig {
-  seed: number
-  blockLimit: number
+  readonly seed: number
+  readonly blockLimit: number
 }
 
 /**

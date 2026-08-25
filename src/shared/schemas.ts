@@ -4,18 +4,16 @@ const playerIdSchema = z.string();
 const tickSchema = z.number();
 
 const worldConfigSchema = z.object({
-  seed: z.number(),
-  blockLimit: z.number(),
+  seed: z.number().int().positive(),
+  blockLimit: z.number().int().nonnegative(),
 });
 
-// Client Messages
 const playerStateSchema = z.object({
   id: playerIdSchema,
   x: z.number(),
   y: z.number(),
   alive: z.boolean(),
 });
-
 
 // Server Messages
 const welcomeMessageSchema = z.object({

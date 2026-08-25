@@ -20,7 +20,6 @@ import { fileURLToPath } from 'node:url'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { PORT } from '../shared/constants.js'
 import type { ClientMessage, ServerMessage } from '../shared/types.js'
-import {createWorld} from "../shared/sim.js";
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..')
 
@@ -32,11 +31,24 @@ const MIME: Record<string, string> = {
   '.ts': 'text/plain; charset=utf-8',
 }
 
+
+function isClientNodeModule(path: string){
+  const modules = [
+    'zod'
+  ] as const
+  for(const mod of modules){
+    if(path.startsWith(`/node_modules/${mod}/`)){
+      return true
+    }
+  }
+  return false
+}
+
 // --- Job 1: static files ----------------------------------------------------
 const http = createServer(async (req, res) => {
   const urlPath = (req.url ?? '/').split('?')[0] ?? '/'
   const rel = urlPath === '/' ? 'public/index.html'
-    : urlPath.startsWith('/dist/') || urlPath.startsWith('/src/') || urlPath.startsWith('/node_modules/') ? urlPath.slice(1)
+    : urlPath.startsWith('/dist/') || urlPath.startsWith('/src/') || isClientNodeModule(urlPath) ? urlPath.slice(1)
     : join('public', urlPath)
 
   const file = normalize(join(ROOT, rel))
@@ -60,8 +72,6 @@ const worldConfig = {
   seed:Math.ceil(Math.random() * 1000),
   blockLimit:50
 }
-
-// const world = createWorld(worldConfig)
 
 function send(ws: WebSocket, msg: ServerMessage): void {
   ws.send(JSON.stringify(msg))
