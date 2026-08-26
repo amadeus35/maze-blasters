@@ -14,9 +14,9 @@ let handlers:HandlerHooks = {
 export function connect(hooks: HandlerHooks){
     handlers = hooks
     const ws = new WebSocket(`ws://${location.host}`)
-    ws.addEventListener('open', () => console.log('[net] connected'))
-    ws.addEventListener('message', (e) => handleMessage(e))
-    ws.addEventListener('close', () => console.log('[net] disconnected'))
+    ws.addEventListener("open", () => console.log("[net] connected"))
+    ws.addEventListener("message", (e) => handleMessage(e))
+    ws.addEventListener("close", () => console.log("[net] disconnected"))
 }
 
 function handleMessage(event: MessageEvent){
@@ -39,5 +39,6 @@ function handleMessage(event: MessageEvent){
             break
         default: // State message
             console.log("Updating state...")
+            handlers.onStateUpdate()
     }
 }
