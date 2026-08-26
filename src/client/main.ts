@@ -13,12 +13,10 @@
 // makes "the world at tick 500" a thing two different machines can talk about.
 // ============================================================================
 
-import { TICK_MS } from '../shared/constants.js'
-import { createWorld, addPlayer, step } from '../shared/sim.js'
-import type {InputCommand, PlayerId, WorldConfig, WorldState} from '../shared/types.js'
-import { attachInput, sampleInput } from './input.js'
-import { setupCanvas, render } from './render.js'
+import { attachInput } from './input.js'
+import { setupCanvas } from './render.js'
 import {connect} from "./net.js";
+import {gameClient} from "./game_loop.js";
 
 const canvas = document.getElementById('game') as HTMLCanvasElement
 const ctx = setupCanvas(canvas)
@@ -26,50 +24,14 @@ const hud = document.getElementById('hud') as HTMLElement
 
 attachInput()
 
-const LOCAL_ID: PlayerId = 'local'
-let world: WorldState|null = null
-const inputs = new Map<PlayerId, InputCommand>()
-let accumulator = 0
-let previous = 0
-function frame(now: number): void {
-  if(world){
-    requestAnimationFrame(frame)
+gameClient.init(ctx, hud)
 
-    let elapsed = now - previous
-    previous = now
-
-    // Clamp. If the tab was backgrounded for 30 seconds, `elapsed` is 30000ms
-    // and the loop below would try to run 1800 ticks in one frame, freeze, and
-    // make `elapsed` even larger next frame. This is the classic "spiral of
-    // death". Better to drop simulated time than to hang.
-    if (elapsed > 250) elapsed = 250
-
-    accumulator += elapsed
-
-    while (accumulator >= TICK_MS) {
-      inputs.set(LOCAL_ID, sampleInput())
-      step(world, inputs)
-      accumulator -= TICK_MS
-    }
-
-    render(ctx, world, accumulator / TICK_MS)
-    hud.textContent = `tick ${world.tick}`
-  }
-}
-
-function onWelcome(config: WorldConfig){
-  previous = performance.now()
-  world = createWorld(config)
-  addPlayer(world, LOCAL_ID, 1, 1)
-
-  requestAnimationFrame(frame)
-}
 function onStateUpdate(){
   console.log("Updating state...")
 }
 
 connect({
-  onWelcome,
+  onWelcome: gameClient.start,
   onStateUpdate
 })
 
