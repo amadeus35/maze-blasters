@@ -16,7 +16,7 @@ explain the death of is worth more than a right one you inherited.
 - How do I represent "the state of the world at tick N" as a distinct, snapshot-able thing?
 
 **Decisions I made and why:**
-- Movement model (cell-locked vs. free float overlapping cells): Free float overlapping cell movement over cell-locked movement, I want the challenge.
+- Movement model (cell-locked vs. free float overlapping cells): Free float overlapping cell movement over cell-locked movement, it gives the game a higher skill cap for players. However, player positions as floats will make calculations such as client prediction and reconciliation much harder. Float drift must be mitigated so that the server and client's `step()` are deterministic.
 - Where the destructible-block layout comes from (server-authored vs. shared seed): Shared seed over server-authored destructible-block layout. Initially the shared seed design means less netcode.
 - How a held bomb key is prevented from laying 60 bombs a second:
 
