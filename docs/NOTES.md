@@ -16,8 +16,8 @@ explain the death of is worth more than a right one you inherited.
 - How do I represent "the state of the world at tick N" as a distinct, snapshot-able thing?
 
 **Decisions I made and why:**
-- Movement model (cell-locked vs. free float overlapping cells):
-- Where the destructible-block layout comes from (server-authored vs. shared seed):
+- Movement model (cell-locked vs. free float overlapping cells): Free float overlapping cell movement over cell-locked movement, I want the challenge.
+- Where the destructible-block layout comes from (server-authored vs. shared seed): Shared seed over server-authored destructible-block layout. Initially the shared seed design means less netcode.
 - How a held bomb key is prevented from laying 60 bombs a second:
 
 ---
