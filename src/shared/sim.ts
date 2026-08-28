@@ -19,7 +19,7 @@
 // layout, powerup drops), use a seeded PRNG whose seed lives IN WorldState.
 // ============================================================================
 
-import { GRID_W, GRID_H } from './constants.js'
+import {GRID_W, GRID_H, PLAYER_HALF_W} from './constants.js'
 import {Tile, type PlayerId, type PlayerState, type WorldState, type InputCommand, type WorldConfig} from './types.js'
 
 /** Read a tile safely. Out of bounds counts as solid Wall — no bounds checks
@@ -95,7 +95,21 @@ export function cloneWorld(world: WorldState): WorldState {
 }
 
 export function addPlayer(world: WorldState, id: PlayerId, x: number, y: number): PlayerState {
-  const p: PlayerState = { id, x, y, alive: true }
+  const playerWidth = PLAYER_HALF_W * 2
+  const p: PlayerState = {
+    id,
+    x,
+    y,
+    alive: true,
+    getHitbox: function() {
+      return {
+        topLeft: [this.x, this.y],
+        topRight: [this.x + playerWidth, this.y],
+        bottomRight: [this.x + playerWidth, this.y + playerWidth],
+        bottomLeft: [this.x, this.y + playerWidth]
+      }
+    }
+  }
   world.players.set(id, p)
   return p
 }

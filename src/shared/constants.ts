@@ -24,4 +24,9 @@ export const GRID_H = 13
 /** Render size of one grid cell, in CSS pixels. Purely cosmetic. */
 export const TILE_PX = 40
 
+/**
+ * Player model dimensions in grid units
+ */
+export const PLAYER_HALF_W = 0.25
+
 export const PORT = 8080

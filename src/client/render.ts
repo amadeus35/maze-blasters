@@ -2,7 +2,7 @@
 // simulation now depends on whether a frame was rendered, and a server that
 // renders nothing will diverge from a client that renders 144 times a second.
 
-import { GRID_W, GRID_H, TILE_PX } from '../shared/constants.js'
+import {GRID_W, GRID_H, TILE_PX, PLAYER_HALF_W} from '../shared/constants.js'
 import { Tile, type WorldState } from '../shared/types.js'
 import { tileAt } from '../shared/sim.js'
 
@@ -47,7 +47,7 @@ export function render(ctx: CanvasRenderingContext2D, world: WorldState, alpha: 
     if (!p.alive) continue
     ctx.fillStyle = COLORS.self
     ctx.beginPath()
-    ctx.arc((p.x + 0.5) * TILE_PX, (p.y + 0.5) * TILE_PX, TILE_PX * 0.34, 0, Math.PI * 2)
+    ctx.arc((p.x + 0.5) * TILE_PX, (p.y + 0.5) * TILE_PX, TILE_PX * PLAYER_HALF_W, 0, Math.PI * 2)
     ctx.fill()
   }
 

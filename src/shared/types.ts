@@ -32,12 +32,22 @@ export interface InputCommand {
   bomb: boolean
 }
 
+type CoordinatePoint = [x: number, y: number]
+
+export interface PlayerHitBox{
+  topLeft: CoordinatePoint
+  topRight: CoordinatePoint
+  bottomRight: CoordinatePoint
+  bottomLeft: CoordinatePoint
+}
+
 export interface PlayerState {
   id: PlayerId
   /** Position in GRID units (not pixels). Fractional = mid-cell. */
   x: number
   y: number
   alive: boolean
+  getHitbox: () => PlayerHitBox // Todo: This makes objects unserializable. Move out into helper function.
 }
 
 export interface WorldConfig {
