@@ -28,5 +28,6 @@ export const TILE_PX = 40
  * Player model dimensions in grid units
  */
 export const PLAYER_HALF_W = 0.25
+export const PLAYER_CENTER_OFFSET = 0.5
 
 export const PORT = 8080

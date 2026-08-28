@@ -20,7 +20,16 @@
 // ============================================================================
 
 import {GRID_W, GRID_H, PLAYER_HALF_W} from './constants.js'
-import {Tile, type PlayerId, type PlayerState, type WorldState, type InputCommand, type WorldConfig} from './types.js'
+import {
+  Tile,
+  type PlayerId,
+  type PlayerState,
+  type WorldState,
+  type InputCommand,
+  type WorldConfig,
+  type PlayerHitBox
+} from './types.js'
+import {getHitbox} from "./player_helpers.js";
 
 /** Read a tile safely. Out of bounds counts as solid Wall — no bounds checks
  *  scattered through your movement code, and no undefined leaking in. */
@@ -32,6 +41,23 @@ export function tileAt(world: WorldState, x: number, y: number): number {
 export function setTile(world: WorldState, x: number, y: number, v: number): void {
   if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) return
   world.tiles[y * GRID_W + x] = v
+}
+
+function wouldCollide(world: WorldState, playerXIntent:number, playerYIntent:number): boolean{
+  const playerHitbox: PlayerHitBox = getHitbox(playerXIntent, playerYIntent)
+  const flooredHitbox: PlayerHitBox = {
+    topLeft: [Math.floor(playerHitbox.topLeft[0]), Math.floor(playerHitbox.topLeft[1])],
+    topRight: [Math.floor(playerHitbox.topRight[0]), Math.floor(playerHitbox.topRight[1])],
+    bottomRight: [Math.floor(playerHitbox.bottomRight[0]), Math.floor(playerHitbox.bottomRight[1])],
+    bottomLeft: [Math.floor(playerHitbox.bottomLeft[0]), Math.floor(playerHitbox.bottomLeft[1])],
+  }
+
+  // Use flooredHitbox to check surrounding tile overlap with 4 calls to tileAt()
+
+  return tileAt(world, flooredHitbox.topLeft[0], flooredHitbox.topLeft[1]) === Tile.Wall ||
+      tileAt(world, flooredHitbox.topRight[0], flooredHitbox.topRight[1]) === Tile.Wall ||
+      tileAt(world, flooredHitbox.bottomRight[0], flooredHitbox.bottomRight[1]) === Tile.Wall ||
+      tileAt(world, flooredHitbox.bottomLeft[0], flooredHitbox.bottomLeft[1]) === Tile.Wall
 }
 
 /** Builds the starting world: border walls plus the classic odd/odd pillars. */
@@ -95,20 +121,11 @@ export function cloneWorld(world: WorldState): WorldState {
 }
 
 export function addPlayer(world: WorldState, id: PlayerId, x: number, y: number): PlayerState {
-  const playerWidth = PLAYER_HALF_W * 2
   const p: PlayerState = {
     id,
     x,
     y,
-    alive: true,
-    getHitbox: function() {
-      return {
-        topLeft: [this.x, this.y],
-        topRight: [this.x + playerWidth, this.y],
-        bottomRight: [this.x + playerWidth, this.y + playerWidth],
-        bottomLeft: [this.x, this.y + playerWidth]
-      }
-    }
+    alive: true
   }
   world.players.set(id, p)
   return p
@@ -128,19 +145,16 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
     const input = inputs.get(player.id)
     if (!input) continue
 
-    // -----------------------------------------------------------------------
-    // THROWAWAY CODE — delete this block when you start Exercise 0.2.
-    // It exists only to prove the input -> tick -> render pipeline is wired up
-    // end to end, so that when your real movement misbehaves you already know
-    // the plumbing is not at fault. It has no collision and ignores the grid.
     const SPEED = 0.08 // grid cells per tick
-    if (input.left) player.x -= SPEED
-    if (input.right) player.x += SPEED
-    if (input.up) player.y -= SPEED
-    if (input.down) player.y += SPEED
-    player.x = Math.max(1, Math.min(GRID_W - 2, player.x))
-    player.y = Math.max(1, Math.min(GRID_H - 2, player.y))
-    // -----------------------------------------------------------------------
+    let playerXIntent = player.x
+    let playerYIntent = player.y
+
+    if (input.left) playerXIntent -= SPEED
+    if (input.right) playerXIntent += SPEED
+    if (input.up) playerYIntent -= SPEED
+    if (input.down) playerYIntent += SPEED
+    playerXIntent = Math.max(1, Math.min(GRID_W - 2, playerXIntent))
+    playerYIntent = Math.max(1, Math.min(GRID_H - 2, playerYIntent))
 
     // EXERCISE 0.2 — Real grid movement with wall collision.
     //   The design question underneath this: is a player AT a cell, or at a
@@ -149,6 +163,21 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
     //   nicer to play and much harder to make deterministic. Pick one and
     //   write down why. Whatever you pick, it must produce bit-identical
     //   results from identical inputs — beware accumulated float drift.
+
+
+
+    if(wouldCollide(world, playerXIntent, playerYIntent)){
+      console.log("Touching wall")
+    }
+
+    if (input.left) player.x -= SPEED
+    if (input.right) player.x += SPEED
+    if (input.up) player.y -= SPEED
+    if (input.down) player.y += SPEED
+    player.x = Math.max(1, Math.min(GRID_W - 2, player.x))
+    player.y = Math.max(1, Math.min(GRID_H - 2, player.y))
+
+
 
     // EXERCISE 0.3 — Bomb placement.
     //   `input.bomb` is held down across many ticks; a held key must not lay

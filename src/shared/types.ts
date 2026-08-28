@@ -47,7 +47,6 @@ export interface PlayerState {
   x: number
   y: number
   alive: boolean
-  getHitbox: () => PlayerHitBox // Todo: This makes objects unserializable. Move out into helper function.
 }
 
 export interface WorldConfig {
