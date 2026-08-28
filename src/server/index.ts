@@ -23,6 +23,11 @@ import type { ClientMessage, ServerMessage } from '../shared/types.js'
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..')
 
+// `npm run dev` (scripts/dev.mjs) sets NODE_ENV=development on this process;
+// `npm start` does not. Anything not explicitly development is treated as prod,
+// so debug tooling can never be on by accident in a deployed build.
+const IS_DEV = process.env.NODE_ENV === 'development'
+
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -55,6 +60,16 @@ const http = createServer(async (req, res) => {
   if (!file.startsWith(ROOT + sep)) { res.writeHead(403).end('forbidden'); return }
 
   try {
+    // index.html is the one file we rewrite on the way out: it carries the
+    // env flag the client cannot otherwise know (no build step, no process.env).
+    if (rel === 'public/index.html') {
+      const html = await readFile(file, 'utf8')
+      const tag = `<script>window.__MAZE_ENV__=${JSON.stringify(IS_DEV ? 'dev' : 'prod')}</script>`
+      res.writeHead(200, { 'content-type': MIME['.html'] ?? 'text/html' })
+      res.end(html.replace('</head>', `  ${tag}\n</head>`))
+      return
+    }
+
     const body = await readFile(file)
     res.writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream' })
     res.end(body)
@@ -129,5 +144,5 @@ wss.on('connection', (ws) => {
 //     tick 500 and the client's tick 500 mean different wall-clock moments?
 
 http.listen(PORT, () => {
-  console.log(`\n  maze-blasters  ->  http://localhost:${PORT}\n`)
+  console.log(`\n  maze-blasters (${IS_DEV ? 'dev' : 'prod'})  ->  http://localhost:${PORT}\n`)
 })

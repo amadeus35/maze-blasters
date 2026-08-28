@@ -9,7 +9,10 @@ const npx = isWin ? 'npx.cmd' : 'npx'
 
 const children = [
   spawn(npx, ['tsc', '--watch', '--preserveWatchOutput'], { stdio: 'inherit', shell: isWin }),
-  spawn(process.execPath, ['--watch', '--watch-path', 'dist', 'dist/server/index.js'], { stdio: 'inherit' }),
+  spawn(process.execPath, ['--watch', '--watch-path', 'dist', 'dist/server/index.js'], {
+    stdio: 'inherit',
+    env: { ...process.env, NODE_ENV: 'development' },
+  }),
 ]
 
 const shutdown = () => {

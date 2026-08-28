@@ -5,6 +5,8 @@
 import {GRID_W, GRID_H, TILE_PX, PLAYER_HALF_W} from '../shared/constants.js'
 import { Tile, type WorldState } from '../shared/types.js'
 import { tileAt } from '../shared/sim.js'
+import { getHitbox } from '../shared/player_helpers.js'
+import { debugFlags } from './debug.js'
 
 const COLORS = {
   floor: '#1d2233',
@@ -51,6 +53,8 @@ export function render(ctx: CanvasRenderingContext2D, world: WorldState, alpha: 
     ctx.fill()
   }
 
+  if (debugFlags.showHitbox) drawHitboxOverlay(ctx, world)
+
   // EXERCISE 0.5 — Use `alpha`.
   //   At 60Hz sim on a 144Hz monitor, most frames draw a world that has not
   //   changed since the last frame: motion looks subtly steppy. The fix is to
@@ -61,4 +65,74 @@ export function render(ctx: CanvasRenderingContext2D, world: WorldState, alpha: 
   //   because in Phase 3 you will do exactly this again for remote players,
   //   and there you will not be able to tell interpolation bugs apart from
   //   network bugs.
+}
+
+// ---------------------------------------------------------------------------
+// DEV-only debug overlay
+// ---------------------------------------------------------------------------
+
+const HITBOX_STROKE = '#ff5c8a'
+const HITBOX_CELL_FILL = 'rgba(255, 92, 138, 0.16)'
+const HITBOX_LABEL = '#ffb3cd'
+
+const HITBOX_FONT_PX = 14
+const HITBOX_LINE_PX = HITBOX_FONT_PX + 4
+
+/**
+ * Draws, for every player, the four corners getHitbox() produces and the grid
+ * cell each one floors into — i.e. exactly the four cells wouldCollide() tests.
+ * If the pink box is not concentric with the green player circle, that offset
+ * is your collision bug, not the tile lookup.
+ */
+function drawHitboxOverlay(ctx: CanvasRenderingContext2D, world: WorldState): void {
+  ctx.save()
+  ctx.font = `${HITBOX_FONT_PX}px ui-monospace, monospace`
+  ctx.textBaseline = 'top'
+
+  for (const p of world.players.values()) {
+    if (!p.alive) continue
+
+    const hb = getHitbox(p.x, p.y)
+    const corners: ReadonlyArray<readonly [string, readonly [number, number]]> = [
+      ['TL', hb.topLeft],
+      ['TR', hb.topRight],
+      ['BR', hb.bottomRight],
+      ['BL', hb.bottomLeft],
+    ]
+
+    // The cells the corners land in (what wouldCollide() reads).
+    ctx.fillStyle = HITBOX_CELL_FILL
+    for (const [, [gx, gy]] of corners) {
+      ctx.fillRect(Math.floor(gx) * TILE_PX, Math.floor(gy) * TILE_PX, TILE_PX, TILE_PX)
+    }
+
+    // The hitbox rectangle.
+    ctx.strokeStyle = HITBOX_STROKE
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.moveTo(hb.topLeft[0] * TILE_PX, hb.topLeft[1] * TILE_PX)
+    ctx.lineTo(hb.topRight[0] * TILE_PX, hb.topRight[1] * TILE_PX)
+    ctx.lineTo(hb.bottomRight[0] * TILE_PX, hb.bottomRight[1] * TILE_PX)
+    ctx.lineTo(hb.bottomLeft[0] * TILE_PX, hb.bottomLeft[1] * TILE_PX)
+    ctx.closePath()
+    ctx.stroke()
+
+    // A dot on each corner.
+    ctx.fillStyle = HITBOX_STROKE
+    for (const [, [gx, gy]] of corners) {
+      ctx.beginPath()
+      ctx.arc(gx * TILE_PX, gy * TILE_PX, 2.5, 0, Math.PI * 2)
+      ctx.fill()
+    }
+
+    // All four coordinates, listed next to the top-right corner.
+    ctx.fillStyle = HITBOX_LABEL
+    const textX = hb.topRight[0] * TILE_PX + 6
+    const textY = hb.topRight[1] * TILE_PX
+    corners.forEach(([name, [gx, gy]], i) => {
+      ctx.fillText(`${name} ${gx.toFixed(2)},${gy.toFixed(2)}`, textX, textY + i * HITBOX_LINE_PX)
+    })
+  }
+
+  ctx.restore()
 }

@@ -17,12 +17,14 @@ import { attachInput } from './input.js'
 import { setupCanvas } from './render.js'
 import {connect} from "./net.js";
 import {gameClient} from "./game_loop.js";
+import {setupDebugPanel} from "./debug.js";
 
 const canvas = document.getElementById('game') as HTMLCanvasElement
 const ctx = setupCanvas(canvas)
 const hud = document.getElementById('hud') as HTMLElement
 
 attachInput()
+setupDebugPanel()
 
 gameClient.init(ctx, hud)
 
