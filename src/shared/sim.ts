@@ -52,12 +52,10 @@ function wouldCollide(world: WorldState, playerXIntent:number, playerYIntent:num
     bottomLeft: [Math.floor(playerHitbox.bottomLeft[0]), Math.floor(playerHitbox.bottomLeft[1])],
   }
 
-  // Use flooredHitbox to check surrounding tile overlap with 4 calls to tileAt()
-
-  return tileAt(world, flooredHitbox.topLeft[0], flooredHitbox.topLeft[1]) === Tile.Wall ||
-      tileAt(world, flooredHitbox.topRight[0], flooredHitbox.topRight[1]) === Tile.Wall ||
-      tileAt(world, flooredHitbox.bottomRight[0], flooredHitbox.bottomRight[1]) === Tile.Wall ||
-      tileAt(world, flooredHitbox.bottomLeft[0], flooredHitbox.bottomLeft[1]) === Tile.Wall
+  return tileAt(world, flooredHitbox.topLeft[0], flooredHitbox.topLeft[1]) !== Tile.Floor ||
+      tileAt(world, flooredHitbox.topRight[0], flooredHitbox.topRight[1]) !== Tile.Floor ||
+      tileAt(world, flooredHitbox.bottomRight[0], flooredHitbox.bottomRight[1]) !== Tile.Floor ||
+      tileAt(world, flooredHitbox.bottomLeft[0], flooredHitbox.bottomLeft[1]) !== Tile.Floor
 }
 
 /** Builds the starting world: border walls plus the classic odd/odd pillars. */
@@ -153,8 +151,7 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
     if (input.right) playerXIntent += SPEED
     if (input.up) playerYIntent -= SPEED
     if (input.down) playerYIntent += SPEED
-    playerXIntent = Math.max(1, Math.min(GRID_W - 2, playerXIntent))
-    playerYIntent = Math.max(1, Math.min(GRID_H - 2, playerYIntent))
+
 
     // EXERCISE 0.2 — Real grid movement with wall collision.
     //   The design question underneath this: is a player AT a cell, or at a
@@ -164,18 +161,14 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
     //   write down why. Whatever you pick, it must produce bit-identical
     //   results from identical inputs — beware accumulated float drift.
 
-
-
-    if(wouldCollide(world, playerXIntent, playerYIntent)){
-      console.log("Touching wall")
+    if(!wouldCollide(world, playerXIntent, playerYIntent)){
+      if (input.left) player.x -= SPEED
+      if (input.right) player.x += SPEED
+      if (input.up) player.y -= SPEED
+      if (input.down) player.y += SPEED
     }
 
-    if (input.left) player.x -= SPEED
-    if (input.right) player.x += SPEED
-    if (input.up) player.y -= SPEED
-    if (input.down) player.y += SPEED
-    player.x = Math.max(1, Math.min(GRID_W - 2, player.x))
-    player.y = Math.max(1, Math.min(GRID_H - 2, player.y))
+
 
 
 
