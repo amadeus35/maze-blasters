@@ -63,6 +63,10 @@ reasoning.
 > - `NOTES.md:19` still lists only the upside. Add the cost (float drift →
 >   bit-identical `step()` on server / prediction / replay) before moving to
 >   0.3.
+>
+> **Answered (confirmed in code, not discussed live this session):**
+> `NOTES.md:19` now states the cost — float drift, and that it makes client
+> prediction and reconciliation harder — alongside the upside. Closed.
 
 ## 2. Point vs. box
 
@@ -102,6 +106,11 @@ Questions to sit with, not answer here:
 > - Is `0.5` the **full width** or the **half-extent** (`h`, center-to-edge)?
 >   Name the constant so it can't be misread (`PLAYER_HALF` vs
 >   `PLAYER_SIZE`) — this ambiguity is a classic off-by-2× collision bug.
+>
+> **Answered (confirmed in code, not discussed live this session):**
+> `constants.ts` names it `PLAYER_HALF_W = 0.25` — unambiguous, it's the
+> half-extent. `render.ts:52` and `player_helpers.ts` both consume it
+> directly rather than re-deriving their own number. Closed.
 
 ## 3. Bridging float position and integer tiles
 
@@ -160,6 +169,21 @@ moment, versus just correct most of the time?
 >
 >   Pick one, and check it gives the same answer on server and on
 >   reconciliation replay.
+>
+> **Answered (this session) — resolved by avoidance, not by picking (a) or
+> (b):**
+>
+> - The actual implementation (`wouldCollide` in `sim.ts:46`) checks the box
+>   at the *intended* position and refuses the move outright if any corner
+>   floors into a non-`Floor` tile. The player is never allowed to reach a
+>   position where `floor(edge) == W` in the first place, so the
+>   flush-boundary ambiguity Q13/Q14 worried about never comes up.
+> - **Tradeoff to note:** movement happens in fixed `SPEED` (0.08) jumps, and
+>   a blocked tick simply doesn't move the player at all. So the resting
+>   edge can land anywhere in `[W - SPEED, W)` — not flush, and not a fixed
+>   distance from the wall. Not necessarily a problem, but a deliberate
+>   trade for skipping the snap-to-flush math. Revisit if flush contact ends
+>   up mattering for feel.
 
 ## 4. The determinism constraint
 
@@ -182,6 +206,16 @@ actually lives.
 > resolve the two axes (X-then-Y vs Y-then-X) must be fixed and identical
 > everywhere, because near a corner the two orders give different final
 > positions.
+>
+> **Answered (this session) — confirmed concretely, not just as a leading
+> candidate.** Full trace is in Section 5: resolving X-first vs. Y-first
+> through the same diagonal-corner scenario produces two different final
+> resting positions. The order genuinely changes the outcome; it must be
+> fixed and identical on server, client prediction, and reconciliation
+> replay.
+>
+> **Open:** which order, and is there a principled reason to prefer one — or
+> is it "arbitrary, but fixed" (also a legitimate answer, if you argue it)?
 
 ## 5. Corners
 
@@ -210,6 +244,37 @@ one separately rather than only checking the combined destination.
 >     one wall.
 >
 > **Open:** make the both-axes-blocked call and note which axis wins.
+>
+> **Answered (this session) — found a real bug in the current code by
+> tracing it:**
+>
+> - Traced the Section 1 promise ("holding up+right, wall only on the
+>   right, floor above → right cancels, up continues") against the actual
+>   code, and it does **not** hold. `step()` computes `playerXIntent` and
+>   `playerYIntent` together and calls `wouldCollide` once on the *combined*
+>   box (`sim.ts:164`) — one blocked/clear answer for both axes at once. If
+>   right alone would collide, up gets cancelled too, even though up alone
+>   is clear. Contradicts the Section 1 decision.
+> - Tried the obvious fix — check X and Y independently, each against the
+>   box at the CURRENT (not intended) other-axis coordinate — and traced it
+>   against a true diagonal-corner case (wall diagonally right+down, open
+>   floor directly right, open floor directly below, player pressing
+>   right+down). Both independent checks report "clear," but the combined
+>   box overlaps the wall. Pure independent checking lets the player clip
+>   through the corner. So neither "always combined" nor "always
+>   independent-vs-original" is correct alone.
+> - Tried **sequential resolution** instead: commit the first axis to the
+>   real position if its solo check is clear, THEN check the second axis
+>   against that just-updated position (not the original). Traced X-then-Y
+>   and Y-then-X through the same diagonal-corner case and got two
+>   *different* final resting positions — this is where Section 4's
+>   determinism concern stopped being abstract.
+>
+> **Open:** is "which axis wins a diagonal-corner slide" actually a separate
+> decision from axis-resolution order, or the same decision wearing two
+> names? Answer that, then implement the sequential per-axis resolve in
+> `step()`, replacing the single combined `wouldCollide` call at
+> `sim.ts:164`.
 
 ## 6. Self-check checklist
 
@@ -238,12 +303,24 @@ artifact Phase 6 asks you to look back on.
 
 ## Session pause — where to pick up
 
-1. **Q13** — write out all four flush-snap expressions (right / left / up / down).
-2. **Q14** — choose `floor` + re-fire (a) or `ceil-1` penetration (b); justify determinism.
-3. Assemble the per-axis move loop: desired position → build box → check
-   leading-edge corners → if solid, snap flush → repeat for other axis.
-4. **Section 4** — pick and fix the axis-resolution order.
-5. **Section 5** — decide both-axes-blocked behaviour (stop vs slide).
-6. Update `render.ts:50` to derive its radius from the new hitbox constant.
-7. Update `NOTES.md:19` with the cost side of the free-float decision.
-8. **Section 6** — run the self-check.
+1. ~~Q13 / Q14~~ — resolved by avoidance (Section 3): the implementation
+   never lets the box reach the flush boundary, so the snap-target math is
+   moot. Tradeoff noted: resting gap isn't fixed, up to one `SPEED` short of
+   flush.
+2. Answer Section 5's new open question: is "which axis wins a
+   diagonal-corner slide" the same decision as axis-resolution order, or
+   separate?
+3. Commit to an axis order (X-first or Y-first) for Section 4 —
+   arbitrary-but-fixed is a fine answer, but write down that it's arbitrary
+   if that's the call.
+4. Implement the sequential per-axis resolve in `step()`: commit axis A to
+   the real position if its solo check (against the CURRENT other axis) is
+   clear, then check axis B against the just-updated position, not the
+   original. Replaces the single combined `wouldCollide` call at
+   `sim.ts:164`.
+5. ~~Update `render.ts:50` to derive its radius from the new hitbox
+   constant~~ — done; it already reads `PLAYER_HALF_W` (`render.ts:52`).
+6. ~~Update `NOTES.md:19` with the cost side of the free-float decision~~ —
+   done; the entry already names float drift and prediction/reconciliation
+   difficulty as the cost.
+7. **Section 6** — run the self-check once the sequential resolve lands.
