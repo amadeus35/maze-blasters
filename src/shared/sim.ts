@@ -152,15 +152,10 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
     if (input.up) playerYIntent -= SPEED
     if (input.down) playerYIntent += SPEED
 
-
-    // EXERCISE 0.2 — Real grid movement with wall collision.
-    //   The design question underneath this: is a player AT a cell, or at a
-    //   float position that OVERLAPS cells? Classic Bomberman is the second
-    //   (you slide along walls and get nudged around corners), which is much
-    //   nicer to play and much harder to make deterministic. Pick one and
-    //   write down why. Whatever you pick, it must produce bit-identical
-    //   results from identical inputs — beware accumulated float drift.
-
+    // Collision Detection + Wall Slide
+    //  Collision is detected using Sequential Dimension Resolution.
+    //  One dimension is checked at a time and commited if no collision is detected.
+    //  Consequently order of dimension resolution determines slide direction in direct corner collision.
     if(!wouldCollide(world, playerXIntent, player.y)){
       if (input.left) player.x = playerXIntent
       if (input.right) player.x = playerXIntent
@@ -170,9 +165,6 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
       if (input.up) player.y = playerYIntent
       if (input.down) player.y = playerYIntent
     }
-
-
-
 
 
     // EXERCISE 0.3 — Bomb placement.
