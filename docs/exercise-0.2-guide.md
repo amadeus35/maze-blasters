@@ -58,6 +58,19 @@ reasoning.
 >   1×1 — and the circle drawn has radius `0.34` (width `0.68`), so that line
 >   is currently inconsistent with itself.
 >
+> **Superseded:** Convention B didn't survive contact with `getHitbox`
+> (`player_helpers.ts`). Once the box was sized smaller than a full tile
+> (Section 2 — `PLAYER_HALF_W = 0.25`, box width `0.5`), "`p.x` is the box's
+> own edge" stopped making sense as a convention — it never actually
+> conformed to Convention B, because a sub-tile box's edge and a full tile's
+> edge aren't the same reference point. The convention actually in force
+> now: **`p.x` is the top-left corner of the player's conceptual 1×1 tile
+> cell, and the (smaller) hitbox is centered inside that cell** — box center
+> is `p.x + 0.5`, box edges are `p.x + 0.25` and `p.x + 0.75`. This is *not*
+> Convention B; it's closer to "corner-addressed cell, centered sub-box."
+> It resolves the render/collision mismatch the caveat above flagged,
+> because both now agree that `p.x + 0.5` is the true center.
+>
 > **Open:**
 >
 > - `NOTES.md:19` still lists only the upside. Add the cost (float drift →
@@ -216,6 +229,13 @@ actually lives.
 >
 > **Open:** which order, and is there a principled reason to prefer one — or
 > is it "arbitrary, but fixed" (also a legitimate answer, if you argue it)?
+>
+> **Answered (this session): X resolves first, always.** No principled
+> reason beyond "it must be fixed" — arbitrary-but-fixed, as the guide
+> allowed for. Concrete consequence, worked out in Section 5: in a
+> right+down diagonal-corner slide, X commits and Y is checked (and
+> blocked) against the new X, so the player keeps moving right and stops
+> moving down. That's what "X wins" actually looks like in play.
 
 ## 5. Corners
 
@@ -275,6 +295,18 @@ one separately rather than only checking the combined destination.
 > names? Answer that, then implement the sequential per-axis resolve in
 > `step()`, replacing the single combined `wouldCollide` call at
 > `sim.ts:164`.
+>
+> **Answered (this session):** same decision, wearing two names — confirmed
+> by tracing the true double-direct-wall case (wall immediately right AND
+> immediately below, player pressing right+down): X-first and Y-first both
+> reject their first axis outright (direct wall, nothing to commit), so the
+> second axis's check runs against the same original position either way —
+> full stop, order-invariant. The general principle: **axis order only
+> matters when resolving the first axis actually commits something** — i.e.
+> when that axis's solo check comes back clear and changes what the second
+> axis's check sees. That only happens in the pure-diagonal-corner case
+> (Section 4), which is exactly where "which axis wins" and "which axis
+> resolves first" collapse into the same question. Answered there: X-first.
 
 ## 6. Self-check checklist
 
@@ -307,17 +339,19 @@ artifact Phase 6 asks you to look back on.
    never lets the box reach the flush boundary, so the snap-target math is
    moot. Tradeoff noted: resting gap isn't fixed, up to one `SPEED` short of
    flush.
-2. Answer Section 5's new open question: is "which axis wins a
-   diagonal-corner slide" the same decision as axis-resolution order, or
-   separate?
-3. Commit to an axis order (X-first or Y-first) for Section 4 —
-   arbitrary-but-fixed is a fine answer, but write down that it's arbitrary
-   if that's the call.
-4. Implement the sequential per-axis resolve in `step()`: commit axis A to
-   the real position if its solo check (against the CURRENT other axis) is
-   clear, then check axis B against the just-updated position, not the
-   original. Replaces the single combined `wouldCollide` call at
-   `sim.ts:164`.
+2. ~~Section 5's "which axis wins" question~~ — same decision as
+   axis-resolution order (Section 4), confirmed by tracing the
+   double-direct-wall case (order-invariant, full stop) against the
+   pure-diagonal-corner case (order-sensitive, because the first axis
+   actually commits).
+3. ~~Commit to an axis order~~ — **X resolves first**, fixed,
+   arbitrary-but-fixed by choice. Consequence: a right+down diagonal-corner
+   slide keeps the player moving right, stops them moving down.
+4. **Only remaining step:** implement the sequential per-axis resolve in
+   `step()`: commit axis A (X) to the real position if its solo check
+   (against the CURRENT other axis) is clear, then check axis B (Y) against
+   the just-updated position, not the original. Replaces the single
+   combined `wouldCollide` call at `sim.ts:164`.
 5. ~~Update `render.ts:50` to derive its radius from the new hitbox
    constant~~ — done; it already reads `PLAYER_HALF_W` (`render.ts:52`).
 6. ~~Update `NOTES.md:19` with the cost side of the free-float decision~~ —

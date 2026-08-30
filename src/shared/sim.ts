@@ -161,11 +161,14 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
     //   write down why. Whatever you pick, it must produce bit-identical
     //   results from identical inputs — beware accumulated float drift.
 
-    if(!wouldCollide(world, playerXIntent, playerYIntent)){
-      if (input.left) player.x -= SPEED
-      if (input.right) player.x += SPEED
-      if (input.up) player.y -= SPEED
-      if (input.down) player.y += SPEED
+    if(!wouldCollide(world, playerXIntent, player.y)){
+      if (input.left) player.x = playerXIntent
+      if (input.right) player.x = playerXIntent
+    }
+
+    if(!wouldCollide(world, player.x, playerYIntent)){
+      if (input.up) player.y = playerYIntent
+      if (input.down) player.y = playerYIntent
     }
 
 
