@@ -70,7 +70,9 @@ export interface WorldState {
   tick: Tick
   /** Length GRID_W * GRID_H, indexed by (y * GRID_W + x). */
   tiles: Uint8Array
+  bombPlacements: Uint8Array
   players: Map<PlayerId, PlayerState>
+  playersPreviousInput: Map<PlayerId, InputCommand>
 }
 
 // ---------------------------------------------------------------------------

@@ -58,6 +58,16 @@ function wouldCollide(world: WorldState, playerXIntent:number, playerYIntent:num
       tileAt(world, flooredHitbox.bottomLeft[0], flooredHitbox.bottomLeft[1]) !== Tile.Floor
 }
 
+export function tileHasBomb(world: WorldState, x: number, y: number): boolean{
+  return world.bombPlacements[y * GRID_W + x] !== 0
+}
+
+export function setBomb(world: WorldState, x: number, y: number): void{
+  if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) return
+  if(tileAt(world, x, y) !== Tile.Floor) return
+  world.bombPlacements[y * GRID_W + x]  = 1
+}
+
 /** Builds the starting world: border walls plus the classic odd/odd pillars. */
 export function createWorld(config: WorldConfig): WorldState {
   let seed = config.seed
@@ -96,7 +106,12 @@ export function createWorld(config: WorldConfig): WorldState {
   // to clients, or generated from a shared seed. Both are legitimate; they
   // have different failure modes when a player joins late (Phase 5).
 
-  return { tick: 0, tiles, players: new Map() }
+  return { tick: 0,
+    tiles,
+    bombPlacements: new Uint8Array(GRID_W * GRID_H),
+    players: new Map<PlayerId, PlayerState>(),
+    playersPreviousInput: new Map<PlayerId, InputCommand>()
+  }
 }
 
 /**
@@ -112,9 +127,13 @@ export function cloneWorld(world: WorldState): WorldState {
   return {
     tick: world.tick,
     tiles: world.tiles.slice(),
+    bombPlacements: world.bombPlacements.slice(),
     players: new Map(
       [...world.players].map(([id, p]) => [id, { ...p }]),
     ),
+    playersPreviousInput: new Map(
+        [...world.playersPreviousInput].map(([id, p]) => [id, { ...p }]),
+    )
   }
 }
 
@@ -172,6 +191,22 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
     //   60 bombs a second. Where does "was this key already down last tick?"
     //   live — in WorldState, or in the input itself? Your answer decides
     //   whether replaying a tick during reconciliation lays a phantom bomb.
+
+    // Input Pick: Storing "was this key already down last tick" on the InputCommand would go against its transient design.
+    //  `game_loop.ts:34` overwrites any previous player command with a new one.
+    // WorldState Pick: Storing it on the WorldState is a better choice since it's persistent across ticks.
+    //  However, the state must remain serializable
+
+    const previousInput = world.playersPreviousInput.get(player.id)
+    if(previousInput === undefined){
+      world.playersPreviousInput.set(player.id, input)
+      setBomb(world, player.x, player.y)
+    }else{
+      if(!previousInput.bomb){
+        setBomb(world, player.x, player.y)
+      }
+    }
+
   }
 
   // EXERCISE 0.4 — Bomb fuses, explosions, chain reactions, deaths.
