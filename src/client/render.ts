@@ -136,3 +136,31 @@ function drawHitboxOverlay(ctx: CanvasRenderingContext2D, world: WorldState): vo
 
   ctx.restore()
 }
+
+function drawBomb(ctx: CanvasRenderingContext2D, cx: number, cy: number, cr: number){
+
+  // Body
+  ctx.beginPath()
+  ctx.arc(cx, cy, cr, 0, Math.PI * 2)
+  ctx.fillStyle = "black"
+  ctx.fill()
+  ctx.closePath()
+
+  // Fuse cap
+  const capHeight = -cr * 0.4
+  const rx = cx - (cr / 2)
+  const ry = cy - (cr * 0.85)
+  ctx.fillRect(rx, ry, cr, capHeight) // (x, y, width, height)
+
+
+  // Fuse
+  const firstPtY = cy - cr - Math.abs(capHeight)
+  const secondPtY = firstPtY - cr * 0.5
+  const offset = ry - (cy - cr)
+  ctx.beginPath()
+  ctx.strokeStyle = "brown"
+  ctx.lineWidth = cr * 0.10
+  ctx.moveTo(cx, firstPtY + offset) // (x, y)
+  ctx.lineTo(cx, secondPtY)
+  ctx.stroke()
+}
