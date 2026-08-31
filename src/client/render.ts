@@ -3,7 +3,7 @@
 // renders nothing will diverge from a client that renders 144 times a second.
 
 import {GRID_W, GRID_H, TILE_PX, PLAYER_HALF_W} from '../shared/constants.js'
-import { Tile, type WorldState } from '../shared/types.js'
+import {type CoordinatePoint, Tile, type WorldState} from '../shared/types.js'
 import { tileAt } from '../shared/sim.js'
 import { getHitbox } from '../shared/player_helpers.js'
 import { debugFlags } from './debug.js'
@@ -137,29 +137,31 @@ function drawHitboxOverlay(ctx: CanvasRenderingContext2D, world: WorldState): vo
   ctx.restore()
 }
 
-function drawBomb(ctx: CanvasRenderingContext2D, cx: number, cy: number, cr: number){
+function drawBomb(ctx: CanvasRenderingContext2D, centerCoordinate: CoordinatePoint, radius: number){
+  const cx = centerCoordinate[0]
+  const cy = centerCoordinate[1]
 
   // Body
   ctx.beginPath()
-  ctx.arc(cx, cy, cr, 0, Math.PI * 2)
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2)
   ctx.fillStyle = "black"
   ctx.fill()
   ctx.closePath()
 
   // Fuse cap
-  const capHeight = -cr * 0.4
-  const rx = cx - (cr / 2)
-  const ry = cy - (cr * 0.85)
-  ctx.fillRect(rx, ry, cr, capHeight) // (x, y, width, height)
+  const capHeight = -radius * 0.4
+  const rx = cx - (radius / 2)
+  const ry = cy - (radius * 0.85)
+  ctx.fillRect(rx, ry, radius, capHeight) // (x, y, width, height)
 
 
   // Fuse
-  const firstPtY = cy - cr - Math.abs(capHeight)
-  const secondPtY = firstPtY - cr * 0.5
-  const offset = ry - (cy - cr)
+  const firstPtY = cy - radius - Math.abs(capHeight)
+  const secondPtY = firstPtY - radius * 0.5
+  const offset = ry - (cy - radius)
   ctx.beginPath()
   ctx.strokeStyle = "brown"
-  ctx.lineWidth = cr * 0.10
+  ctx.lineWidth = radius * 0.10
   ctx.moveTo(cx, firstPtY + offset) // (x, y)
   ctx.lineTo(cx, secondPtY)
   ctx.stroke()

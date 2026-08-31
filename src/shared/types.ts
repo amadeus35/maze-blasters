@@ -32,7 +32,7 @@ export interface InputCommand {
   bomb: boolean
 }
 
-type CoordinatePoint = [x: number, y: number]
+export type CoordinatePoint = [x: number, y: number]
 
 export interface PlayerHitBox{
   topLeft: CoordinatePoint
