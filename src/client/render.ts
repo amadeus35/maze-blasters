@@ -3,8 +3,8 @@
 // renders nothing will diverge from a client that renders 144 times a second.
 
 import {GRID_W, GRID_H, TILE_PX, PLAYER_HALF_W} from '../shared/constants.js'
-import {type CoordinatePoint, Tile, type WorldState} from '../shared/types.js'
-import { tileAt } from '../shared/sim.js'
+import {type TileCoordinatePoint, Tile, type WorldState} from '../shared/types.js'
+import {tileAt, tileHasBomb} from '../shared/sim.js'
 import { getHitbox } from '../shared/player_helpers.js'
 import { debugFlags } from './debug.js'
 
@@ -29,6 +29,8 @@ export function setupCanvas(canvas: HTMLCanvasElement): CanvasRenderingContext2D
 }
 
 /**
+ * @param ctx
+ * @param world
  * @param alpha  How far we are between the last completed tick and the next
  *               one, in the range [0, 1). Currently ignored — see EXERCISE 0.5.
  */
@@ -42,6 +44,11 @@ export function render(ctx: CanvasRenderingContext2D, world: WorldState, alpha: 
       ctx.fillRect(x * TILE_PX, y * TILE_PX, TILE_PX, TILE_PX)
       ctx.strokeStyle = COLORS.grid
       ctx.strokeRect(x * TILE_PX + 0.5, y * TILE_PX + 0.5, TILE_PX - 1, TILE_PX - 1)
+      if(tileHasBomb(world, x, y)){
+        const rx = (x + 0.5) * TILE_PX
+        const ry = (y + 0.5) * TILE_PX
+        drawBomb(ctx, [rx, ry], TILE_PX * 0.25)
+      }
     }
   }
 
@@ -49,11 +56,14 @@ export function render(ctx: CanvasRenderingContext2D, world: WorldState, alpha: 
     if (!p.alive) continue
     ctx.fillStyle = COLORS.self
     ctx.beginPath()
-    ctx.arc((p.x + 0.5) * TILE_PX, (p.y + 0.5) * TILE_PX, TILE_PX * PLAYER_HALF_W, 0, Math.PI * 2)
+    ctx.arc(p.x * TILE_PX, p.y * TILE_PX, TILE_PX * PLAYER_HALF_W, 0, Math.PI * 2)
     ctx.fill()
   }
 
-  if (debugFlags.showHitbox) drawHitboxOverlay(ctx, world)
+  if (debugFlags.showHitbox) {
+    drawHitboxOverlay(ctx, world)
+    drawPlayerOrigins(ctx, world)
+  }
 
   // EXERCISE 0.5 — Use `alpha`.
   //   At 60Hz sim on a 144Hz monitor, most frames draw a world that has not
@@ -92,7 +102,7 @@ function drawHitboxOverlay(ctx: CanvasRenderingContext2D, world: WorldState): vo
   for (const p of world.players.values()) {
     if (!p.alive) continue
 
-    const hb = getHitbox(p.x, p.y)
+    const hb = getHitbox([p.x, p.y])
     const corners: ReadonlyArray<readonly [string, readonly [number, number]]> = [
       ['TL', hb.topLeft],
       ['TR', hb.topRight],
@@ -137,7 +147,19 @@ function drawHitboxOverlay(ctx: CanvasRenderingContext2D, world: WorldState): vo
   ctx.restore()
 }
 
-function drawBomb(ctx: CanvasRenderingContext2D, centerCoordinate: CoordinatePoint, radius: number){
+function drawPlayerOrigins(ctx: CanvasRenderingContext2D, world: WorldState){
+  ctx.save()
+  ctx.fillStyle = "yellow"
+  for(const player of world.players.values()){
+    if (!player.alive) continue
+    ctx.beginPath()
+    ctx.arc(player.x * TILE_PX, player.y * TILE_PX, 2.5, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.restore()
+}
+
+function drawBomb(ctx: CanvasRenderingContext2D, centerCoordinate: TileCoordinatePoint, radius: number){
   const cx = centerCoordinate[0]
   const cy = centerCoordinate[1]
 

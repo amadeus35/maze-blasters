@@ -1,14 +1,12 @@
-import type {PlayerHitBox, PlayerState} from "./types.js";
-import {PLAYER_CENTER_OFFSET, PLAYER_HALF_W} from "./constants.js";
-export function getHitbox(playerX:number, playerY: number): PlayerHitBox {
-    const playerWidth = PLAYER_HALF_W * 2
-    const playerCenterOffHalf = PLAYER_CENTER_OFFSET / 2
-    playerX += playerCenterOffHalf
-    playerY += playerCenterOffHalf
+import type {PlayerHitBox, TileAddress, TileCoordinatePoint} from "./types.js";
+import {PLAYER_HALF_W} from "./constants.js";
+export function getHitbox(coordinate: TileCoordinatePoint): PlayerHitBox {
+    const playerX = coordinate[0]
+    const playerY = coordinate[1]
     return {
-        topLeft: [playerX, playerY],
-        topRight: [playerX + playerWidth, playerY],
-        bottomRight: [playerX + playerWidth, playerY + playerWidth],
-        bottomLeft: [playerX, playerY + playerWidth]
+        topLeft: [playerX - PLAYER_HALF_W, playerY - PLAYER_HALF_W],
+        topRight: [playerX + PLAYER_HALF_W, playerY - PLAYER_HALF_W],
+        bottomRight: [playerX + PLAYER_HALF_W, playerY + PLAYER_HALF_W],
+        bottomLeft: [playerX - PLAYER_HALF_W, playerY + PLAYER_HALF_W]
     }
 }

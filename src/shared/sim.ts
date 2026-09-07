@@ -19,7 +19,7 @@
 // layout, powerup drops), use a seeded PRNG whose seed lives IN WorldState.
 // ============================================================================
 
-import {GRID_W, GRID_H, PLAYER_HALF_W} from './constants.js'
+import {GRID_W, GRID_H} from './constants.js'
 import {
   Tile,
   type PlayerId,
@@ -27,7 +27,7 @@ import {
   type WorldState,
   type InputCommand,
   type WorldConfig,
-  type PlayerHitBox
+  type PlayerHitBox, type TileCoordinatePoint, type TileAddress
 } from './types.js'
 import {getHitbox} from "./player_helpers.js";
 
@@ -43,8 +43,18 @@ export function setTile(world: WorldState, x: number, y: number, v: number): voi
   world.tiles[y * GRID_W + x] = v
 }
 
-function wouldCollide(world: WorldState, playerXIntent:number, playerYIntent:number): boolean{
-  const playerHitbox: PlayerHitBox = getHitbox(playerXIntent, playerYIntent)
+/**
+ * From a coordinate point in Grid Units getTileOrigin returns a Tile's "origin"
+ * @param coordinate
+ */
+export function getTileOrigin(coordinate: TileCoordinatePoint): TileAddress{
+  return [Math.floor(coordinate[0]), Math.floor(coordinate[1])]
+}
+
+function wouldCollide(world: WorldState, coordinate: TileCoordinatePoint): boolean{
+  const playerXIntent = coordinate[0]
+  const playerYIntent = coordinate[1]
+  const playerHitbox: PlayerHitBox = getHitbox([playerXIntent, playerYIntent])
   const flooredHitbox: PlayerHitBox = {
     topLeft: [Math.floor(playerHitbox.topLeft[0]), Math.floor(playerHitbox.topLeft[1])],
     topRight: [Math.floor(playerHitbox.topRight[0]), Math.floor(playerHitbox.topRight[1])],
@@ -62,7 +72,10 @@ export function tileHasBomb(world: WorldState, x: number, y: number): boolean{
   return world.bombPlacements[y * GRID_W + x] !== 0
 }
 
-export function setBomb(world: WorldState, x: number, y: number): void{
+export function setBomb(world: WorldState, coordinate: TileAddress): void{
+  const x = coordinate[0]
+  const y = coordinate[1]
+
   if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) return
   if(tileAt(world, x, y) !== Tile.Floor) return
   world.bombPlacements[y * GRID_W + x]  = 1
@@ -91,20 +104,12 @@ export function createWorld(config: WorldConfig): WorldState {
       const pillar = x % 2 === 0 && y % 2 === 0
       const spawnZone = (x === 1 && y === 1) || (x === 1 && y === 2) || (x === 2 && y === 1)
 
+      // Determines what type of tile to render
       tiles[y * GRID_W + x] = border || pillar ?
           Tile.Wall : printBlock() && !spawnZone ?
               Tile.Block : Tile.Floor
     }
   }
-
-  // EXERCISE 0.1 — Destructible blocks.
-  // Scatter Tile.Block over the floor, keeping each spawn corner and its two
-  // neighbours clear so players are not entombed at tick 0.
-  // Before you write it: where does the randomness come from? If the server
-  // and the client each call Math.random() they will build DIFFERENT MAZES.
-  // Decide now whether the layout is generated once on the server and shipped
-  // to clients, or generated from a shared seed. Both are legitimate; they
-  // have different failure modes when a player joins late (Phase 5).
 
   return { tick: 0,
     tiles,
@@ -137,11 +142,11 @@ export function cloneWorld(world: WorldState): WorldState {
   }
 }
 
-export function addPlayer(world: WorldState, id: PlayerId, x: number, y: number): PlayerState {
+export function addPlayer(world: WorldState, id: PlayerId, coordinate: TileCoordinatePoint): PlayerState {
   const p: PlayerState = {
     id,
-    x,
-    y,
+    x: coordinate[0],
+    y: coordinate[1],
     alive: true
   }
   world.players.set(id, p)
@@ -175,12 +180,12 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
     //  Collision is detected using Sequential Dimension Resolution.
     //  One dimension is checked at a time and commited if no collision is detected.
     //  Consequently order of dimension resolution determines slide direction in direct corner collision.
-    if(!wouldCollide(world, playerXIntent, player.y)){
+    if(!wouldCollide(world, [playerXIntent, player.y])){
       if (input.left) player.x = playerXIntent
       if (input.right) player.x = playerXIntent
     }
 
-    if(!wouldCollide(world, player.x, playerYIntent)){
+    if(!wouldCollide(world, [player.x, playerYIntent])){
       if (input.up) player.y = playerYIntent
       if (input.down) player.y = playerYIntent
     }
@@ -198,14 +203,12 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
     //  However, the state must remain serializable
 
     const previousInput = world.playersPreviousInput.get(player.id)
-    if(previousInput === undefined){
-      world.playersPreviousInput.set(player.id, input)
-      setBomb(world, player.x, player.y)
-    }else{
-      if(!previousInput.bomb){
-        setBomb(world, player.x, player.y)
+    if(input.bomb){
+      if(previousInput?.bomb !== false){
+        setBomb(world, getTileOrigin([player.x, player.y]))
       }
     }
+    world.playersPreviousInput.set(player.id, {...input})
 
   }
 

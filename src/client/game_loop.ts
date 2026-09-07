@@ -1,5 +1,5 @@
 import type {InputCommand, PlayerId, WorldConfig, WorldState} from "../shared/types.js";
-import {TICK_MS} from "../shared/constants.js";
+import {HALF_TILE_LENGTH, TICK_MS} from "../shared/constants.js";
 import {sampleInput} from "./input.js";
 import {addPlayer, createWorld, step} from "../shared/sim.js";
 import {render} from "./render.js";
@@ -50,7 +50,7 @@ const start = function(config: WorldConfig){
     if(world === null){
         previous = performance.now()
         world = createWorld(config)
-        addPlayer(world, LOCAL_ID, 1, 1)
+        addPlayer(world, LOCAL_ID, [1 + HALF_TILE_LENGTH, 1 + HALF_TILE_LENGTH])
 
         requestAnimationFrame(frame)
     }else{

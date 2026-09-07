@@ -21,6 +21,8 @@ export const SEND_EVERY_N_TICKS = 1
 /** Grid is odd-sized so the classic pillar pattern lands on odd/odd cells. */
 export const GRID_W = 15
 export const GRID_H = 13
+export const HALF_TILE_LENGTH = 0.5 // In Grid Units
+
 /** Render size of one grid cell, in CSS pixels. Purely cosmetic. */
 export const TILE_PX = 40
 
@@ -28,6 +30,5 @@ export const TILE_PX = 40
  * Player model dimensions in grid units
  */
 export const PLAYER_HALF_W = 0.25
-export const PLAYER_CENTER_OFFSET = 0.5
 
 export const PORT = 8080

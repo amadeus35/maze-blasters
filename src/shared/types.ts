@@ -32,13 +32,20 @@ export interface InputCommand {
   bomb: boolean
 }
 
-export type CoordinatePoint = [x: number, y: number]
+export type CoordinatePoint<XValue, YValue> = [x: XValue, y: YValue]
+
+export type TileCoordinatePoint = CoordinatePoint<number, number>
+export type CanvasCoordinatePoint = CoordinatePoint<number, number>
+/**
+ * TileAddress represents a tile's "origin" and should there for be a tuple of integers
+ */
+export type TileAddress = CoordinatePoint<number, number>
 
 export interface PlayerHitBox{
-  topLeft: CoordinatePoint
-  topRight: CoordinatePoint
-  bottomRight: CoordinatePoint
-  bottomLeft: CoordinatePoint
+  topLeft: TileCoordinatePoint
+  topRight: TileCoordinatePoint
+  bottomRight: TileCoordinatePoint
+  bottomLeft: TileCoordinatePoint
 }
 
 export interface PlayerState {
@@ -86,7 +93,10 @@ export interface WorldState {
 export type ClientMessage =
   | { t: 'input'; cmd: InputCommand }
 
-/** Server -> Client */
+/** Server -> Client
+ * The state message omits `playersPreviousInput` because it's a client-side piece of state that is not need on the server at this time.
+ *
+ * */
 export type ServerMessage =
   | { t: 'welcome'; id: PlayerId; tick: Tick, worldConfig: WorldConfig }
   | { t: 'state'; tick: Tick; players: PlayerState[] }
