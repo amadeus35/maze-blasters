@@ -44,7 +44,7 @@ export function render(ctx: CanvasRenderingContext2D, world: WorldState, alpha: 
       ctx.fillRect(x * TILE_PX, y * TILE_PX, TILE_PX, TILE_PX)
       ctx.strokeStyle = COLORS.grid
       ctx.strokeRect(x * TILE_PX + 0.5, y * TILE_PX + 0.5, TILE_PX - 1, TILE_PX - 1)
-      if(tileHasBomb(world, x, y)){
+      if(tileHasBomb(world, [x, y])){
         const rx = (x + 0.5) * TILE_PX
         const ry = (y + 0.5) * TILE_PX
         drawBomb(ctx, [rx, ry], TILE_PX * 0.25)
@@ -159,9 +159,8 @@ function drawPlayerOrigins(ctx: CanvasRenderingContext2D, world: WorldState){
   ctx.restore()
 }
 
-function drawBomb(ctx: CanvasRenderingContext2D, centerCoordinate: TileCoordinatePoint, radius: number){
-  const cx = centerCoordinate[0]
-  const cy = centerCoordinate[1]
+function drawBomb(ctx: CanvasRenderingContext2D, [cx, cy]: TileCoordinatePoint, radius: number){
+  ctx.save()
 
   // Body
   ctx.beginPath()
@@ -187,4 +186,6 @@ function drawBomb(ctx: CanvasRenderingContext2D, centerCoordinate: TileCoordinat
   ctx.moveTo(cx, firstPtY + offset) // (x, y)
   ctx.lineTo(cx, secondPtY)
   ctx.stroke()
+
+  ctx.restore()
 }

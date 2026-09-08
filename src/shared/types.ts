@@ -14,6 +14,7 @@ export const Tile = {
   Block: 2,
 } as const
 export type TileValue = (typeof Tile)[keyof typeof Tile]
+export type TileIndex = number
 
 /**
  * One player's intent for one tick.
@@ -56,6 +57,8 @@ export interface PlayerState {
   alive: boolean
 }
 
+export type Bomb = { owner:PlayerId, tick: Tick, tileIndex: TileIndex }
+
 export interface WorldConfig {
   readonly seed: number
   readonly blockLimit: number
@@ -77,7 +80,7 @@ export interface WorldState {
   tick: Tick
   /** Length GRID_W * GRID_H, indexed by (y * GRID_W + x). */
   tiles: Uint8Array
-  bombPlacements: Uint8Array
+  bombs: Map<TileIndex, Bomb>
   players: Map<PlayerId, PlayerState>
   playersPreviousInput: Map<PlayerId, InputCommand>
 }
@@ -99,4 +102,4 @@ export type ClientMessage =
  * */
 export type ServerMessage =
   | { t: 'welcome'; id: PlayerId; tick: Tick, worldConfig: WorldConfig }
-  | { t: 'state'; tick: Tick; players: PlayerState[] }
+  | { t: 'state'; tick: Tick; players: PlayerState[], bombs: Bomb[]}

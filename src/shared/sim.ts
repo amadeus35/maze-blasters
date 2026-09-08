@@ -27,7 +27,7 @@ import {
   type WorldState,
   type InputCommand,
   type WorldConfig,
-  type PlayerHitBox, type TileCoordinatePoint, type TileAddress
+  type PlayerHitBox, type TileCoordinatePoint, type TileAddress, type TileIndex, type Tick
 } from './types.js'
 import {getHitbox} from "./player_helpers.js";
 
@@ -47,13 +47,11 @@ export function setTile(world: WorldState, x: number, y: number, v: number): voi
  * From a coordinate point in Grid Units getTileOrigin returns a Tile's "origin"
  * @param coordinate
  */
-export function getTileOrigin(coordinate: TileCoordinatePoint): TileAddress{
-  return [Math.floor(coordinate[0]), Math.floor(coordinate[1])]
+export function getTileOrigin([x, y]: TileCoordinatePoint): TileAddress{
+  return [Math.floor(x), Math.floor(y)]
 }
 
-function wouldCollide(world: WorldState, coordinate: TileCoordinatePoint): boolean{
-  const playerXIntent = coordinate[0]
-  const playerYIntent = coordinate[1]
+function wouldCollide(world: WorldState, [playerXIntent, playerYIntent]: TileCoordinatePoint): boolean{
   const playerHitbox: PlayerHitBox = getHitbox([playerXIntent, playerYIntent])
   const flooredHitbox: PlayerHitBox = {
     topLeft: [Math.floor(playerHitbox.topLeft[0]), Math.floor(playerHitbox.topLeft[1])],
@@ -68,17 +66,17 @@ function wouldCollide(world: WorldState, coordinate: TileCoordinatePoint): boole
       tileAt(world, flooredHitbox.bottomLeft[0], flooredHitbox.bottomLeft[1]) !== Tile.Floor
 }
 
-export function tileHasBomb(world: WorldState, x: number, y: number): boolean{
-  return world.bombPlacements[y * GRID_W + x] !== 0
+export function tileHasBomb(world: WorldState, [x, y]: TileCoordinatePoint): boolean{
+  if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) return false
+  if(tileAt(world, x, y) !== Tile.Floor) return false
+  return world.bombs.has(y * GRID_W + x)
 }
 
-export function setBomb(world: WorldState, coordinate: TileAddress): void{
-  const x = coordinate[0]
-  const y = coordinate[1]
-
+export function setBomb(world: WorldState, [x, y]: TileAddress, playerId: PlayerId): void{
   if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) return
   if(tileAt(world, x, y) !== Tile.Floor) return
-  world.bombPlacements[y * GRID_W + x]  = 1
+  if(tileHasBomb(world, [x, y])) return
+  world.bombs.set(y * GRID_W + x, {tick: world.tick, owner: playerId, tileIndex: y * GRID_W + x})
 }
 
 /** Builds the starting world: border walls plus the classic odd/odd pillars. */
@@ -113,7 +111,7 @@ export function createWorld(config: WorldConfig): WorldState {
 
   return { tick: 0,
     tiles,
-    bombPlacements: new Uint8Array(GRID_W * GRID_H),
+    bombs: new Map<TileIndex, {owner: PlayerId; tick: Tick, tileIndex: TileIndex}>(),
     players: new Map<PlayerId, PlayerState>(),
     playersPreviousInput: new Map<PlayerId, InputCommand>()
   }
@@ -132,7 +130,9 @@ export function cloneWorld(world: WorldState): WorldState {
   return {
     tick: world.tick,
     tiles: world.tiles.slice(),
-    bombPlacements: world.bombPlacements.slice(),
+    bombs: new Map(
+        [...world.bombs].map(([id, bomb]) => [id, {...bomb}])
+    ),
     players: new Map(
       [...world.players].map(([id, p]) => [id, { ...p }]),
     ),
@@ -205,7 +205,7 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
     const previousInput = world.playersPreviousInput.get(player.id)
     if(input.bomb){
       if(previousInput?.bomb !== false){
-        setBomb(world, getTileOrigin([player.x, player.y]))
+        setBomb(world, getTileOrigin([player.x, player.y]), player.id)
       }
     }
     world.playersPreviousInput.set(player.id, {...input})
