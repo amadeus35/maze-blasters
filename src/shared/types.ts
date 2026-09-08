@@ -2,6 +2,8 @@
 // to the shape of the world is a compile error on both sides, not a runtime
 // mystery on one side.
 
+declare const TileIndexBrand: unique symbol // Brand to enforce integer values on `TileIndex` type
+
 export type PlayerId = string
 export type Tick = number
 
@@ -13,8 +15,9 @@ export const Tile = {
   /** Destructible. Blown up by blasts. */
   Block: 2,
 } as const
+
 export type TileValue = (typeof Tile)[keyof typeof Tile]
-export type TileIndex = number
+export type TileIndex = number & { readonly [TileIndexBrand]: true }
 
 /**
  * One player's intent for one tick.

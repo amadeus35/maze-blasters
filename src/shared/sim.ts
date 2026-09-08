@@ -51,6 +51,15 @@ export function getTileOrigin([x, y]: TileCoordinatePoint): TileAddress{
   return [Math.floor(x), Math.floor(y)]
 }
 
+/**
+ *
+ * @param x can be an integer or float
+ * @param y can be an integer or float
+ */
+function getTileIndex(x: number, y:number){
+  return (y * GRID_W + x) as TileIndex
+}
+
 function wouldCollide(world: WorldState, [playerXIntent, playerYIntent]: TileCoordinatePoint): boolean{
   const playerHitbox: PlayerHitBox = getHitbox([playerXIntent, playerYIntent])
   const flooredHitbox: PlayerHitBox = {
@@ -69,14 +78,15 @@ function wouldCollide(world: WorldState, [playerXIntent, playerYIntent]: TileCoo
 export function tileHasBomb(world: WorldState, [x, y]: TileCoordinatePoint): boolean{
   if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) return false
   if(tileAt(world, x, y) !== Tile.Floor) return false
-  return world.bombs.has(y * GRID_W + x)
+  return world.bombs.has(getTileIndex(x, y))
 }
 
 export function setBomb(world: WorldState, [x, y]: TileAddress, playerId: PlayerId): void{
   if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) return
   if(tileAt(world, x, y) !== Tile.Floor) return
   if(tileHasBomb(world, [x, y])) return
-  world.bombs.set(y * GRID_W + x, {tick: world.tick, owner: playerId, tileIndex: y * GRID_W + x})
+  const tileIndex = getTileIndex(x, y)
+  world.bombs.set(tileIndex, {tick: world.tick, owner: playerId, tileIndex: tileIndex})
 }
 
 /** Builds the starting world: border walls plus the classic odd/odd pillars. */
@@ -164,8 +174,13 @@ export function addPlayer(world: WorldState, id: PlayerId, coordinate: TileCoord
 export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): void {
   for (const player of world.players.values()) {
     if (!player.alive) continue
+
     const input = inputs.get(player.id)
-    if (!input) continue
+    if (!input) {
+      // TODO: Consider relocating this player datum to a table-like player history `Map` on `WorldState`
+      world.playersPreviousInput.delete(player.id)
+      continue
+    }
 
     const SPEED = 0.08 // grid cells per tick
     let playerXIntent = player.x
@@ -203,10 +218,9 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
     //  However, the state must remain serializable
 
     const previousInput = world.playersPreviousInput.get(player.id)
-    if(input.bomb){
-      if(previousInput?.bomb !== false){
-        setBomb(world, getTileOrigin([player.x, player.y]), player.id)
-      }
+    const prevInputNotBomb = previousInput?.bomb === false
+    if(input.bomb && prevInputNotBomb){
+      setBomb(world, getTileOrigin([player.x, player.y]), player.id)
     }
     world.playersPreviousInput.set(player.id, {...input})
 

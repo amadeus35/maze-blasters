@@ -1,4 +1,4 @@
-import type {PlayerHitBox, TileAddress, TileCoordinatePoint} from "./types.js";
+import type {PlayerHitBox, TileCoordinatePoint} from "./types.js";
 import {PLAYER_HALF_W} from "./constants.js";
 export function getHitbox(coordinate: TileCoordinatePoint): PlayerHitBox {
     const playerX = coordinate[0]
