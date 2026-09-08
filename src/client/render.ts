@@ -2,8 +2,8 @@
 // simulation now depends on whether a frame was rendered, and a server that
 // renders nothing will diverge from a client that renders 144 times a second.
 
-import {GRID_W, GRID_H, TILE_PX, PLAYER_HALF_W} from '../shared/constants.js'
-import {type TileCoordinatePoint, Tile, type WorldState} from '../shared/types.js'
+import {GRID_W, GRID_H, TILE_PX, PLAYER_HALF_W, HALF_TILE_LENGTH} from '../shared/constants.js'
+import {Tile, type WorldState, type TileAddress} from '../shared/types.js'
 import {tileAt, tileHasBomb} from '../shared/sim.js'
 import { getHitbox } from '../shared/player_helpers.js'
 import { debugFlags } from './debug.js'
@@ -45,9 +45,7 @@ export function render(ctx: CanvasRenderingContext2D, world: WorldState, alpha: 
       ctx.strokeStyle = COLORS.grid
       ctx.strokeRect(x * TILE_PX + 0.5, y * TILE_PX + 0.5, TILE_PX - 1, TILE_PX - 1)
       if(tileHasBomb(world, [x, y])){
-        const rx = (x + 0.5) * TILE_PX
-        const ry = (y + 0.5) * TILE_PX
-        drawBomb(ctx, [rx, ry], TILE_PX * 0.25)
+        drawBombAtTile(ctx, [x, y], TILE_PX * 0.25)
       }
     }
   }
@@ -159,32 +157,35 @@ function drawPlayerOrigins(ctx: CanvasRenderingContext2D, world: WorldState){
   ctx.restore()
 }
 
-function drawBomb(ctx: CanvasRenderingContext2D, [cx, cy]: TileCoordinatePoint, radius: number){
+function drawBombAtTile(ctx: CanvasRenderingContext2D, [x, y]: TileAddress, radius: number){
+  const bodyCenterX = (x + HALF_TILE_LENGTH) * TILE_PX
+  const bodyCenterY = (y + HALF_TILE_LENGTH) * TILE_PX
+
   ctx.save()
 
   // Body
   ctx.beginPath()
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+  ctx.arc(bodyCenterX, bodyCenterY, radius, 0, Math.PI * 2)
   ctx.fillStyle = "black"
   ctx.fill()
   ctx.closePath()
 
   // Fuse cap
-  const capHeight = -radius * 0.4
-  const rx = cx - (radius / 2)
-  const ry = cy - (radius * 0.85)
-  ctx.fillRect(rx, ry, radius, capHeight) // (x, y, width, height)
+  const capHeight = radius * 0.4
+  const capYAxisOffset = 0.6 // Shifts the cap towards the center of the body, so bottom cap corners are not visible
+  const fuseX = bodyCenterX - (radius / 2)
+  const fuseY = bodyCenterY - radius - (capHeight * capYAxisOffset)
+  ctx.fillRect(fuseX, fuseY, radius, capHeight) // (x, y, width, height)
 
 
   // Fuse
-  const firstPtY = cy - radius - Math.abs(capHeight)
+  const firstPtY = fuseY
   const secondPtY = firstPtY - radius * 0.5
-  const offset = ry - (cy - radius)
   ctx.beginPath()
   ctx.strokeStyle = "brown"
   ctx.lineWidth = radius * 0.10
-  ctx.moveTo(cx, firstPtY + offset) // (x, y)
-  ctx.lineTo(cx, secondPtY)
+  ctx.moveTo(bodyCenterX, firstPtY) // (x, y)
+  ctx.lineTo(bodyCenterX, secondPtY)
   ctx.stroke()
 
   ctx.restore()
