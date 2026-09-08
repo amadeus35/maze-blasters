@@ -102,7 +102,7 @@ export function createWorld(config: WorldConfig): WorldState {
       const pillar = x % 2 === 0 && y % 2 === 0
       const spawnZone = (x === 1 && y === 1) || (x === 1 && y === 2) || (x === 2 && y === 1)
 
-      // Determines what type of tile to render
+      // Loads the pre-determined walls and calculates block placements
       tiles[y * GRID_W + x] = border || pillar ?
           Tile.Wall : printBlock() && !spawnZone ?
               Tile.Block : Tile.Floor

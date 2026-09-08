@@ -29,8 +29,8 @@ export function setupCanvas(canvas: HTMLCanvasElement): CanvasRenderingContext2D
 }
 
 /**
- * @param ctx
- * @param world
+ * @param ctx A reference to the games canvas
+ * @param world The authoritative state of the world at a given tick
  * @param alpha  How far we are between the last completed tick and the next
  *               one, in the range [0, 1). Currently ignored — see EXERCISE 0.5.
  */
@@ -58,10 +58,7 @@ export function render(ctx: CanvasRenderingContext2D, world: WorldState, alpha: 
     ctx.fill()
   }
 
-  if (debugFlags.showHitbox) {
-    drawHitboxOverlay(ctx, world)
-    drawPlayerOrigins(ctx, world)
-  }
+  if (debugFlags.showHitbox) drawHitboxOverlay(ctx, world)
 
   // EXERCISE 0.5 — Use `alpha`.
   //   At 60Hz sim on a 144Hz monitor, most frames draw a world that has not
@@ -142,18 +139,6 @@ function drawHitboxOverlay(ctx: CanvasRenderingContext2D, world: WorldState): vo
     })
   }
 
-  ctx.restore()
-}
-
-function drawPlayerOrigins(ctx: CanvasRenderingContext2D, world: WorldState){
-  ctx.save()
-  ctx.fillStyle = "yellow"
-  for(const player of world.players.values()){
-    if (!player.alive) continue
-    ctx.beginPath()
-    ctx.arc(player.x * TILE_PX, player.y * TILE_PX, 2.5, 0, Math.PI * 2)
-    ctx.fill()
-  }
   ctx.restore()
 }
 
