@@ -13,11 +13,11 @@
 // debugging two unknowns at once.
 // ============================================================================
 
-import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
+import { createServer } from 'node:http'
 import { extname, join, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { WebSocketServer, type WebSocket } from 'ws'
+import { type WebSocket, WebSocketServer } from 'ws'
 import { PORT } from '../shared/constants.js'
 import type { ClientMessage, ServerMessage } from '../shared/types.js'
 
@@ -36,13 +36,10 @@ const MIME: Record<string, string> = {
   '.ts': 'text/plain; charset=utf-8',
 }
 
-
-function isClientNodeModule(path: string){
-  const modules = [
-    'zod'
-  ] as const
-  for(const mod of modules){
-    if(path.startsWith(`/node_modules/${mod}/`)){
+function isClientNodeModule(path: string) {
+  const modules = ['zod'] as const
+  for (const mod of modules) {
+    if (path.startsWith(`/node_modules/${mod}/`)) {
       return true
     }
   }
@@ -52,12 +49,18 @@ function isClientNodeModule(path: string){
 // --- Job 1: static files ----------------------------------------------------
 const http = createServer(async (req, res) => {
   const urlPath = (req.url ?? '/').split('?')[0] ?? '/'
-  const rel = urlPath === '/' ? 'public/index.html'
-    : urlPath.startsWith('/dist/') || urlPath.startsWith('/src/') || isClientNodeModule(urlPath) ? urlPath.slice(1)
-    : join('public', urlPath)
+  const rel =
+    urlPath === '/'
+      ? 'public/index.html'
+      : urlPath.startsWith('/dist/') || urlPath.startsWith('/src/') || isClientNodeModule(urlPath)
+        ? urlPath.slice(1)
+        : join('public', urlPath)
 
   const file = normalize(join(ROOT, rel))
-  if (!file.startsWith(ROOT + sep)) { res.writeHead(403).end('forbidden'); return }
+  if (!file.startsWith(ROOT + sep)) {
+    res.writeHead(403).end('forbidden')
+    return
+  }
 
   try {
     // index.html is the one file we rewrite on the way out: it carries the
@@ -84,8 +87,8 @@ const wss = new WebSocketServer({ server: http })
 let nextId = 1
 const clients = new Map<string, WebSocket>()
 const worldConfig = {
-  seed:Math.ceil(Math.random() * 1000),
-  blockLimit:50
+  seed: Math.ceil(Math.random() * 1000),
+  blockLimit: 50,
 }
 
 function send(ws: WebSocket, msg: ServerMessage): void {

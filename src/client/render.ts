@@ -2,10 +2,10 @@
 // simulation now depends on whether a frame was rendered, and a server that
 // renders nothing will diverge from a client that renders 144 times a second.
 
-import {GRID_W, GRID_H, TILE_PX, PLAYER_HALF_W, HALF_TILE_LENGTH} from '../shared/constants.js'
-import {Tile, type WorldState, type TileAddress} from '../shared/types.js'
-import {tileAt, tileHasBomb} from '../shared/sim.js'
+import { GRID_H, GRID_W, HALF_TILE_LENGTH, PLAYER_HALF_W, TILE_PX } from '../shared/constants.js'
 import { getHitbox } from '../shared/player_helpers.js'
+import { tileAt, tileHasBomb } from '../shared/sim.js'
+import { Tile, type TileAddress, type WorldState } from '../shared/types.js'
 import { debugFlags } from './debug.js'
 
 const COLORS = {
@@ -17,8 +17,8 @@ const COLORS = {
   bomb: {
     body: 'black',
     cap: 'black',
-    fuse: 'brown'
-  }
+    fuse: 'brown',
+  },
 } as const
 
 export function setupCanvas(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
@@ -49,7 +49,7 @@ export function render(ctx: CanvasRenderingContext2D, world: WorldState, alpha: 
       ctx.fillRect(x * TILE_PX, y * TILE_PX, TILE_PX, TILE_PX)
       ctx.strokeStyle = COLORS.grid
       ctx.strokeRect(x * TILE_PX + 0.5, y * TILE_PX + 0.5, TILE_PX - 1, TILE_PX - 1)
-      if(tileHasBomb(world, [x, y])){
+      if (tileHasBomb(world, [x, y])) {
         drawBombAtTile(ctx, [x, y], TILE_PX * 0.25)
       }
     }
@@ -147,7 +147,7 @@ function drawHitboxOverlay(ctx: CanvasRenderingContext2D, world: WorldState): vo
   ctx.restore()
 }
 
-function drawBombAtTile(ctx: CanvasRenderingContext2D, [x, y]: TileAddress, radius: number){
+function drawBombAtTile(ctx: CanvasRenderingContext2D, [x, y]: TileAddress, radius: number) {
   const bodyCenterX = (x + HALF_TILE_LENGTH) * TILE_PX
   const bodyCenterY = (y + HALF_TILE_LENGTH) * TILE_PX
 
@@ -163,18 +163,17 @@ function drawBombAtTile(ctx: CanvasRenderingContext2D, [x, y]: TileAddress, radi
   // Fuse cap
   const capHeight = radius * 0.4
   const capYAxisOffset = 0.6 // Shifts the cap towards the center of the body, so bottom cap corners are not visible
-  const fuseCapX = bodyCenterX - (radius / 2)
-  const fuseCapY = bodyCenterY - radius - (capHeight * capYAxisOffset)
+  const fuseCapX = bodyCenterX - radius / 2
+  const fuseCapY = bodyCenterY - radius - capHeight * capYAxisOffset
   ctx.fillStyle = COLORS.bomb.cap
   ctx.fillRect(fuseCapX, fuseCapY, radius, capHeight) // (x, y, width, height)
-
 
   // Fuse
   const firstPtY = fuseCapY
   const secondPtY = firstPtY - radius * 0.5
   ctx.beginPath()
   ctx.strokeStyle = COLORS.bomb.fuse
-  ctx.lineWidth = radius * 0.10
+  ctx.lineWidth = radius * 0.1
   ctx.moveTo(bodyCenterX, firstPtY) // (x, y)
   ctx.lineTo(bodyCenterX, secondPtY)
   ctx.stroke()

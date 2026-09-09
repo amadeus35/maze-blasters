@@ -45,7 +45,7 @@ export type CanvasCoordinatePoint = CoordinatePoint<number, number>
  */
 export type TileAddress = CoordinatePoint<number, number>
 
-export interface PlayerHitBox{
+export interface PlayerHitBox {
   topLeft: TileCoordinatePoint
   topRight: TileCoordinatePoint
   bottomRight: TileCoordinatePoint
@@ -60,7 +60,7 @@ export interface PlayerState {
   alive: boolean
 }
 
-export type Bomb = { owner:PlayerId, placedAtTick: Tick, tileIndex: TileIndex }
+export type Bomb = { owner: PlayerId; placedAtTick: Tick; tileIndex: TileIndex }
 
 export interface WorldConfig {
   readonly seed: number
@@ -96,13 +96,12 @@ export interface WorldState {
 // express before.
 
 /** Client -> Server */
-export type ClientMessage =
-  | { t: 'input'; cmd: InputCommand }
+export type ClientMessage = { t: 'input'; cmd: InputCommand }
 
 /** Server -> Client
  * The state message omits `playersPreviousInput` because it's a client-side piece of state that is not needed on the server at this time.
  *
  * */
 export type ServerMessage =
-  | { t: 'welcome'; id: PlayerId; tick: Tick, worldConfig: WorldConfig }
-  | { t: 'state'; tick: Tick; players: PlayerState[], bombs: Bomb[]}
+  | { t: 'welcome'; id: PlayerId; tick: Tick; worldConfig: WorldConfig }
+  | { t: 'state'; tick: Tick; players: PlayerState[]; bombs: Bomb[] }

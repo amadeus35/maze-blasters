@@ -19,17 +19,21 @@
 // layout, powerup drops), use a seeded PRNG whose seed lives IN WorldState.
 // ============================================================================
 
-import {GRID_W, GRID_H} from './constants.js'
+import { GRID_H, GRID_W } from './constants.js'
+import { getHitbox } from './player_helpers.js'
 import {
-  Tile,
+  type InputCommand,
+  type PlayerHitBox,
   type PlayerId,
   type PlayerState,
-  type WorldState,
-  type InputCommand,
+  type Tick,
+  Tile,
+  type TileAddress,
+  type TileCoordinatePoint,
+  type TileIndex,
   type WorldConfig,
-  type PlayerHitBox, type TileCoordinatePoint, type TileAddress, type TileIndex, type Tick
+  type WorldState,
 } from './types.js'
-import {getHitbox} from "./player_helpers.js";
 
 /** Read a tile safely. Out of bounds counts as solid Wall — no bounds checks
  *  scattered through your movement code, and no undefined leaking in. */
@@ -47,7 +51,7 @@ export function setTile(world: WorldState, x: number, y: number, v: number): voi
  * From a coordinate point in Grid Units getTileOrigin returns a Tile's "origin"
  * @param coordinate
  */
-export function getTileOrigin([x, y]: TileCoordinatePoint): TileAddress{
+export function getTileOrigin([x, y]: TileCoordinatePoint): TileAddress {
   return [Math.floor(x), Math.floor(y)]
 }
 
@@ -56,11 +60,14 @@ export function getTileOrigin([x, y]: TileCoordinatePoint): TileAddress{
  * @param x can be an integer or float
  * @param y can be an integer or float
  */
-function getTileIndex(x: number, y:number){
+function getTileIndex(x: number, y: number) {
   return (y * GRID_W + x) as TileIndex
 }
 
-function wouldCollide(world: WorldState, [playerXIntent, playerYIntent]: TileCoordinatePoint): boolean{
+function wouldCollide(
+  world: WorldState,
+  [playerXIntent, playerYIntent]: TileCoordinatePoint,
+): boolean {
   const playerHitbox: PlayerHitBox = getHitbox([playerXIntent, playerYIntent])
   const flooredHitbox: PlayerHitBox = {
     topLeft: [Math.floor(playerHitbox.topLeft[0]), Math.floor(playerHitbox.topLeft[1])],
@@ -69,15 +76,17 @@ function wouldCollide(world: WorldState, [playerXIntent, playerYIntent]: TileCoo
     bottomLeft: [Math.floor(playerHitbox.bottomLeft[0]), Math.floor(playerHitbox.bottomLeft[1])],
   }
 
-  return tileAt(world, flooredHitbox.topLeft[0], flooredHitbox.topLeft[1]) !== Tile.Floor ||
-      tileAt(world, flooredHitbox.topRight[0], flooredHitbox.topRight[1]) !== Tile.Floor ||
-      tileAt(world, flooredHitbox.bottomRight[0], flooredHitbox.bottomRight[1]) !== Tile.Floor ||
-      tileAt(world, flooredHitbox.bottomLeft[0], flooredHitbox.bottomLeft[1]) !== Tile.Floor
+  return (
+    tileAt(world, flooredHitbox.topLeft[0], flooredHitbox.topLeft[1]) !== Tile.Floor ||
+    tileAt(world, flooredHitbox.topRight[0], flooredHitbox.topRight[1]) !== Tile.Floor ||
+    tileAt(world, flooredHitbox.bottomRight[0], flooredHitbox.bottomRight[1]) !== Tile.Floor ||
+    tileAt(world, flooredHitbox.bottomLeft[0], flooredHitbox.bottomLeft[1]) !== Tile.Floor
+  )
 }
 
-export function tileHasBomb(world: WorldState, [x, y]: TileCoordinatePoint): boolean{
+export function tileHasBomb(world: WorldState, [x, y]: TileCoordinatePoint): boolean {
   if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) return false
-  if(tileAt(world, x, y) !== Tile.Floor) return false
+  if (tileAt(world, x, y) !== Tile.Floor) return false
   return world.bombs.has(getTileIndex(x, y))
 }
 
@@ -86,25 +95,25 @@ export function tileHasBomb(world: WorldState, [x, y]: TileCoordinatePoint): boo
  * setBomb is the single method that writes bombs onto the world.
  * It must remain the authoritative bomb writing API to prevent Tile Index drift.
  */
-export function setBomb(world: WorldState, [x, y]: TileAddress, playerId: PlayerId): void{
+export function setBomb(world: WorldState, [x, y]: TileAddress, playerId: PlayerId): void {
   if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) return
-  if(tileAt(world, x, y) !== Tile.Floor) return
-  if(tileHasBomb(world, [x, y])) return
+  if (tileAt(world, x, y) !== Tile.Floor) return
+  if (tileHasBomb(world, [x, y])) return
   const tileIndex = getTileIndex(x, y)
-  world.bombs.set(tileIndex, {placedAtTick: world.tick, owner: playerId, tileIndex: tileIndex})
+  world.bombs.set(tileIndex, { placedAtTick: world.tick, owner: playerId, tileIndex: tileIndex })
 }
 
 /** Builds the starting world: border walls plus the classic odd/odd pillars. */
 export function createWorld(config: WorldConfig): WorldState {
   let seed = config.seed
   let blockCount = 0
-  const printBlock =() => {
-    let t = seed += 0x6D2B79F5;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    const nextSeqNumber =  ((t ^ (t >>> 14)) >>> 0) / 4294967296
-    const printBlock = nextSeqNumber <= 0.5 && (blockCount + 1 <= config.blockLimit)
-    if(printBlock){
+  const printBlock = () => {
+    let t = (seed += 0x6d2b79f5)
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    const nextSeqNumber = ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    const printBlock = nextSeqNumber <= 0.5 && blockCount + 1 <= config.blockLimit
+    if (printBlock) {
       blockCount += 1
     }
     return printBlock
@@ -118,17 +127,17 @@ export function createWorld(config: WorldConfig): WorldState {
       const spawnZone = (x === 1 && y === 1) || (x === 1 && y === 2) || (x === 2 && y === 1)
 
       // Loads the pre-determined walls and calculates block placements
-      tiles[y * GRID_W + x] = border || pillar ?
-          Tile.Wall : printBlock() && !spawnZone ?
-              Tile.Block : Tile.Floor
+      tiles[y * GRID_W + x] =
+        border || pillar ? Tile.Wall : printBlock() && !spawnZone ? Tile.Block : Tile.Floor
     }
   }
 
-  return { tick: 0,
+  return {
+    tick: 0,
     tiles,
-    bombs: new Map<TileIndex, {owner: PlayerId; placedAtTick: Tick, tileIndex: TileIndex}>(),
+    bombs: new Map<TileIndex, { owner: PlayerId; placedAtTick: Tick; tileIndex: TileIndex }>(),
     players: new Map<PlayerId, PlayerState>(),
-    playersPreviousInput: new Map<PlayerId, InputCommand>()
+    playersPreviousInput: new Map<PlayerId, InputCommand>(),
   }
 }
 
@@ -145,24 +154,22 @@ export function cloneWorld(world: WorldState): WorldState {
   return {
     tick: world.tick,
     tiles: world.tiles.slice(),
-    bombs: new Map(
-        [...world.bombs].map(([id, bomb]) => [id, {...bomb}])
-    ),
-    players: new Map(
-      [...world.players].map(([id, p]) => [id, { ...p }]),
-    ),
-    playersPreviousInput: new Map(
-        [...world.playersPreviousInput].map(([id, p]) => [id, { ...p }]),
-    )
+    bombs: new Map([...world.bombs].map(([id, bomb]) => [id, { ...bomb }])),
+    players: new Map([...world.players].map(([id, p]) => [id, { ...p }])),
+    playersPreviousInput: new Map([...world.playersPreviousInput].map(([id, p]) => [id, { ...p }])),
   }
 }
 
-export function addPlayer(world: WorldState, id: PlayerId, coordinate: TileCoordinatePoint): PlayerState {
+export function addPlayer(
+  world: WorldState,
+  id: PlayerId,
+  coordinate: TileCoordinatePoint,
+): PlayerState {
   const p: PlayerState = {
     id,
     x: coordinate[0],
     y: coordinate[1],
-    alive: true
+    alive: true,
   }
   world.players.set(id, p)
   return p
@@ -200,16 +207,15 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
     //  Collision is detected using Sequential Dimension Resolution.
     //  One dimension is checked at a time and commited if no collision is detected.
     //  Consequently order of dimension resolution determines slide direction in direct corner collision.
-    if(!wouldCollide(world, [playerXIntent, player.y])){
+    if (!wouldCollide(world, [playerXIntent, player.y])) {
       if (input.left) player.x = playerXIntent
       if (input.right) player.x = playerXIntent
     }
 
-    if(!wouldCollide(world, [player.x, playerYIntent])){
+    if (!wouldCollide(world, [player.x, playerYIntent])) {
       if (input.up) player.y = playerYIntent
       if (input.down) player.y = playerYIntent
     }
-
 
     // EXERCISE 0.3 — Bomb placement.
     //   `input.bomb` is held down across many ticks; a held key must not lay
@@ -224,11 +230,10 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
 
     const previousInput = world.playersPreviousInput.get(player.id)
     const prevInputNotBomb = previousInput?.bomb === false
-    if(input.bomb && prevInputNotBomb){
+    if (input.bomb && prevInputNotBomb) {
       setBomb(world, getTileOrigin([player.x, player.y]), player.id)
     }
-    world.playersPreviousInput.set(player.id, {...input})
-
+    world.playersPreviousInput.set(player.id, { ...input })
   }
 
   // EXERCISE 0.4 — Bomb fuses, explosions, chain reactions, deaths.

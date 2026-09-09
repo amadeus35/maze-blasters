@@ -24,12 +24,20 @@ export function setupDebugPanel(): void {
   const panel = document.createElement('div')
   panel.id = 'debug-panel'
   panel.style.cssText = [
-    'position:fixed', 'top:8px', 'left:8px', 'z-index:10',
-    'display:flex', 'gap:10px', 'align-items:center',
-    'padding:6px 9px', 'border-radius:4px',
-    'background:#1d2233', 'border:1px solid #39405c',
+    'position:fixed',
+    'top:8px',
+    'left:8px',
+    'z-index:10',
+    'display:flex',
+    'gap:10px',
+    'align-items:center',
+    'padding:6px 9px',
+    'border-radius:4px',
+    'background:#1d2233',
+    'border:1px solid #39405c',
     'font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
-    'color:#8d97b5', 'user-select:none',
+    'color:#8d97b5',
+    'user-select:none',
   ].join(';')
 
   panel.append(
