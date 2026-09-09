@@ -1,0 +1,26 @@
+// Custom Biome plugin: guard the determinism contract of the simulation.
+//
+// src/shared/sim.ts runs in three places (authoritative server tick, client
+// prediction, client reconciliation re-runs). step() MUST be a pure function
+// of (world, inputs): the same tick re-run on any machine must produce byte
+// identical state. Wall-clock reads and unseeded randomness break that.
+//
+// This plugin is scoped to src/shared/sim.ts via `overrides` in biome.json.
+// If you legitimately need time, feed it in as a tick. If you need randomness
+// (block layout, powerup drops), use a seeded PRNG whose seed lives in
+// WorldState.
+
+language js
+
+or {
+  `Date.now()`,
+  `performance.now()`,
+  `new Date($...)`,
+  `Math.random()`
+} as $nondeterministic where {
+  register_diagnostic(
+    span = $nondeterministic,
+    message = "sim.step() must be a pure function of (world, inputs): no wall-clock reads or Math.random(). Time enters the simulation only as ticks; randomness comes from a seeded PRNG whose seed lives in WorldState.",
+    severity = "error"
+  )
+}
