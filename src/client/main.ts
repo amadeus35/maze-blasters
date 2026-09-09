@@ -13,11 +13,11 @@
 // makes "the world at tick 500" a thing two different machines can talk about.
 // ============================================================================
 
+import { setupDebugPanel } from './debug.js'
+import { gameClient } from './game_loop.js'
 import { attachInput } from './input.js'
+import { connect } from './net.js'
 import { setupCanvas } from './render.js'
-import {connect} from "./net.js";
-import {gameClient} from "./game_loop.js";
-import {setupDebugPanel} from "./debug.js";
 
 const canvas = document.getElementById('game') as HTMLCanvasElement
 const ctx = setupCanvas(canvas)
@@ -28,12 +28,11 @@ setupDebugPanel()
 
 gameClient.init(ctx, hud)
 
-function onStateUpdate(){
-  console.log("Updating state...")
+function onStateUpdate() {
+  console.log('Updating state...')
 }
 
 connect({
   onWelcome: gameClient.start,
-  onStateUpdate
+  onStateUpdate,
 })
-
