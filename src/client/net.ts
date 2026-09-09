@@ -20,7 +20,7 @@ export function connect(hooks: HandlerHooks) {
 }
 
 function handleMessage(event: MessageEvent) {
-  let rawMessage
+  let rawMessage: unknown
   try {
     rawMessage = JSON.parse(event.data)
   } catch (e) {

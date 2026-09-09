@@ -108,7 +108,8 @@ export function createWorld(config: WorldConfig): WorldState {
   let seed = config.seed
   let blockCount = 0
   const printBlock = () => {
-    let t = (seed += 0x6d2b79f5)
+    seed += 0x6d2b79f5
+    let t = seed
     t = Math.imul(t ^ (t >>> 15), t | 1)
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
     const nextSeqNumber = ((t ^ (t >>> 14)) >>> 0) / 4294967296
