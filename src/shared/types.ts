@@ -60,7 +60,7 @@ export interface PlayerState {
   alive: boolean
 }
 
-export type Bomb = { owner:PlayerId, tick: Tick, tileIndex: TileIndex }
+export type Bomb = { owner:PlayerId, placedAtTick: Tick, tileIndex: TileIndex }
 
 export interface WorldConfig {
   readonly seed: number
@@ -100,7 +100,7 @@ export type ClientMessage =
   | { t: 'input'; cmd: InputCommand }
 
 /** Server -> Client
- * The state message omits `playersPreviousInput` because it's a client-side piece of state that is not need on the server at this time.
+ * The state message omits `playersPreviousInput` because it's a client-side piece of state that is not needed on the server at this time.
  *
  * */
 export type ServerMessage =

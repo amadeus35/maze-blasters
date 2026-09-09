@@ -81,12 +81,17 @@ export function tileHasBomb(world: WorldState, [x, y]: TileCoordinatePoint): boo
   return world.bombs.has(getTileIndex(x, y))
 }
 
+/**
+ *
+ * setBomb is the single method that writes bombs onto the world.
+ * It must remain the authoritative bomb writing API to prevent Tile Index drift.
+ */
 export function setBomb(world: WorldState, [x, y]: TileAddress, playerId: PlayerId): void{
   if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) return
   if(tileAt(world, x, y) !== Tile.Floor) return
   if(tileHasBomb(world, [x, y])) return
   const tileIndex = getTileIndex(x, y)
-  world.bombs.set(tileIndex, {tick: world.tick, owner: playerId, tileIndex: tileIndex})
+  world.bombs.set(tileIndex, {placedAtTick: world.tick, owner: playerId, tileIndex: tileIndex})
 }
 
 /** Builds the starting world: border walls plus the classic odd/odd pillars. */
@@ -121,7 +126,7 @@ export function createWorld(config: WorldConfig): WorldState {
 
   return { tick: 0,
     tiles,
-    bombs: new Map<TileIndex, {owner: PlayerId; tick: Tick, tileIndex: TileIndex}>(),
+    bombs: new Map<TileIndex, {owner: PlayerId; placedAtTick: Tick, tileIndex: TileIndex}>(),
     players: new Map<PlayerId, PlayerState>(),
     playersPreviousInput: new Map<PlayerId, InputCommand>()
   }

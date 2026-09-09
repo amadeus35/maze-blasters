@@ -14,6 +14,11 @@ const COLORS = {
   block: '#7a5c3e',
   grid: '#161a28',
   self: '#5ce1a6',
+  bomb: {
+    body: 'black',
+    cap: 'black',
+    fuse: 'brown'
+  }
 } as const
 
 export function setupCanvas(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
@@ -151,23 +156,24 @@ function drawBombAtTile(ctx: CanvasRenderingContext2D, [x, y]: TileAddress, radi
   // Body
   ctx.beginPath()
   ctx.arc(bodyCenterX, bodyCenterY, radius, 0, Math.PI * 2)
-  ctx.fillStyle = "black"
+  ctx.fillStyle = COLORS.bomb.body
   ctx.fill()
   ctx.closePath()
 
   // Fuse cap
   const capHeight = radius * 0.4
   const capYAxisOffset = 0.6 // Shifts the cap towards the center of the body, so bottom cap corners are not visible
-  const fuseX = bodyCenterX - (radius / 2)
-  const fuseY = bodyCenterY - radius - (capHeight * capYAxisOffset)
-  ctx.fillRect(fuseX, fuseY, radius, capHeight) // (x, y, width, height)
+  const fuseCapX = bodyCenterX - (radius / 2)
+  const fuseCapY = bodyCenterY - radius - (capHeight * capYAxisOffset)
+  ctx.fillStyle = COLORS.bomb.cap
+  ctx.fillRect(fuseCapX, fuseCapY, radius, capHeight) // (x, y, width, height)
 
 
   // Fuse
-  const firstPtY = fuseY
+  const firstPtY = fuseCapY
   const secondPtY = firstPtY - radius * 0.5
   ctx.beginPath()
-  ctx.strokeStyle = "brown"
+  ctx.strokeStyle = COLORS.bomb.fuse
   ctx.lineWidth = radius * 0.10
   ctx.moveTo(bodyCenterX, firstPtY) // (x, y)
   ctx.lineTo(bodyCenterX, secondPtY)
