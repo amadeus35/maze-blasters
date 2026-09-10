@@ -218,17 +218,10 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
       if (input.down) player.y = playerYIntent
     }
 
-    // EXERCISE 0.3 — Bomb placement.
-    //   `input.bomb` is held down across many ticks; a held key must not lay
-    //   60 bombs a second. Where does "was this key already down last tick?"
-    //   live — in WorldState, or in the input itself? Your answer decides
-    //   whether replaying a tick during reconciliation lays a phantom bomb.
-
     // Input Pick: Storing "was this key already down last tick" on the InputCommand would go against its transient design.
     //  `game_loop.ts:34` overwrites any previous player command with a new one.
     // WorldState Pick: Storing it on the WorldState is a better choice since it's persistent across ticks.
     //  However, the state must remain serializable
-
     const previousInput = world.playersPreviousInput.get(player.id)
     const prevInputNotBomb = previousInput?.bomb === false
     if (input.bomb && prevInputNotBomb) {
