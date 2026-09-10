@@ -4,8 +4,10 @@
 
 /** Simulation ticks per second. The heartbeat of the whole game. */
 export const TICK_RATE = 60
+/** Interval of Milliseconds a TICK_RATE covers */
+export const MS_RATE = 1000
 /** Milliseconds of simulated time that one tick represents. */
-export const TICK_MS = 1000 / TICK_RATE
+export const TICK_MS = MS_RATE / TICK_RATE
 
 /**
  * How often the server BROADCASTS state, in ticks.

@@ -19,7 +19,7 @@
 // layout, powerup drops), use a seeded PRNG whose seed lives IN WorldState.
 // ============================================================================
 
-import { GRID_H, GRID_W } from './constants.js'
+import { GRID_H, GRID_W, MS_RATE, TICK_RATE } from './constants.js'
 import { getHitbox } from './player_helpers.js'
 import {
   type InputCommand,
@@ -176,6 +176,21 @@ export function addPlayer(
   return p
 }
 
+function triggerBombs(world: WorldState) {
+  // Bombs have a TTL of 3 secs, at the 3rd second they explode
+  const fuseLengthInTicks = (TICK_RATE / MS_RATE) * 3000
+
+  const expiredBombIndices: TileIndex[] = []
+  for (const bomb of world.bombs.values()) {
+    if (bomb.placedAtTick + fuseLengthInTicks <= world.tick) {
+      expiredBombIndices.push(bomb.tileIndex)
+    }
+  }
+  expiredBombIndices.forEach((index) => {
+    world.bombs.delete(index)
+  })
+}
+
 /**
  * Advance the world by EXACTLY one tick.
  *
@@ -237,6 +252,6 @@ export function step(world: WorldState, inputs: Map<PlayerId, InputCommand>): vo
   //   between a server that saw player B connect first and a client that only
   //   ever knew about them in a different order. Find a total ordering that
   //   every machine can compute independently from WorldState alone.
-
+  triggerBombs(world)
   world.tick++
 }
