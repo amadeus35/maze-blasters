@@ -22,6 +22,7 @@
 import { GRID_H, GRID_W, MS_RATE, TICK_RATE } from './constants.js'
 import { getHitbox } from './player_helpers.js'
 import {
+  type Bomb,
   type InputCommand,
   type PlayerHitBox,
   type PlayerId,
@@ -62,6 +63,11 @@ export function getTileOrigin([x, y]: TileCoordinatePoint): TileAddress {
  */
 function getTileIndex(x: number, y: number) {
   return (y * GRID_W + x) as TileIndex
+}
+
+function toTileOrigin(tileIndex: TileIndex): TileAddress{
+  const x = tileIndex % GRID_W
+  return [x, Math.floor(tileIndex / GRID_W)]
 }
 
 function wouldCollide(
@@ -175,6 +181,21 @@ export function addPlayer(
   world.players.set(id, p)
   return p
 }
+const squareExplosionEquations: ((address:TileAddress)=>TileIndex)[] = [
+  (bombAddress: TileAddress) => getTileIndex(bombAddress[0] - 1, bombAddress[1] - 1), // Top left tile
+  (bombAddress: TileAddress) => getTileIndex(bombAddress[0], bombAddress[1] - 1), // Top middle tile
+  (bombAddress: TileAddress) => getTileIndex(bombAddress[0] + 1, bombAddress[1] - 1), // Top right tile
+  (bombAddress: TileAddress) => getTileIndex(bombAddress[0] - 1, bombAddress[1]), // Left tile
+  (bombAddress: TileAddress) => getTileIndex(bombAddress[0] + 1, bombAddress[1]), // Right tile
+  (bombAddress: TileAddress) => getTileIndex(bombAddress[0] - 1, bombAddress[1] + 1), // Bottom left tile
+  (bombAddress: TileAddress) => getTileIndex(bombAddress[0], bombAddress[1] + 1), // Bottom middle tile
+  (bombAddress: TileAddress) => getTileIndex(bombAddress[0] + 1, bombAddress[1] + 1), // Bottom right tile
+]
+function calculateEffectedTiles(bomb: Bomb): TileIndex[]{
+  // TODO: Handle out of bounds indices
+  //  x < 0 || y < 0 || x >= GRID_W || y >= GRID_H
+  return squareExplosionEquations.map((equation) => equation(toTileOrigin(bomb.tileIndex)))
+}
 
 function triggerBombs(world: WorldState) {
   // Bombs have a TTL of 3 secs, at the 3rd second they explode
@@ -187,8 +208,14 @@ function triggerBombs(world: WorldState) {
     }
   }
   expiredBombIndices.forEach((index) => {
+
     world.bombs.delete(index)
   })
+
+  // TODO: Destroy any blocks in the bomb's area of effect
+
+  // Bomb AoE is every adjacent tile
+
 }
 
 /**
